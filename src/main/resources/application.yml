@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: Iot-fresh-2022
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+  web:
+    resources:
+      static-locations: classpath:/static/
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+# JWT配置
+jwt:
+  secret: mySecretKeyForIotFresh2022Project
+  expiration: 86400 # 24小时
+
+# 日志配置
+logging:
+  level:
+    com.iot.fresh: debug
+    org.springframework.security: debug
+    org.springframework.cache: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/iot-fresh.log
+
+# WebSocket配置
+websocket:
+  path: /websocket
+
+# Swagger配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  show-actuator: true
