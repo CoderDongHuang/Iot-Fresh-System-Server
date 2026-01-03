@@ -2,7 +2,6 @@ package com.iot.fresh.service;
 
 import com.iot.fresh.dto.DeviceDataDto;
 import com.iot.fresh.dto.ApiResponse;
-
 import java.time.LocalDateTime;
 import java.util.List;
 

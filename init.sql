@@ -74,10 +74,10 @@ CREATE INDEX idx_alarms_status ON alarms(status);
 CREATE INDEX idx_device_data_vid ON device_data(vid);
 CREATE INDEX idx_device_data_created_at ON device_data(created_at);
 
--- 插入默认管理员用户 (密码需要加密，这里使用明文，实际部署时需要使用BCrypt加密)
+-- 插入默认管理员用户 (密码是 '123456')
 INSERT INTO users (username, password, email, phone, role, status) VALUES 
-('admin', '$2a$10$NQ4q1fUZ5y5zO3wY8x4vXuR1k5y5zO3wY8x4vXuR1k5y5zO3wY8x4vX', 'admin@example.com', '13800138000', 'ADMIN', 1),
-('operator', '$2a$10$NQ4q1fUZ5y5zO3wY8x4vXuR1k5y5zO3wY8x4vXuR1k5y5zO3wY8x4vX', 'operator@example.com', '13800138001', 'OPERATOR', 1);
+('admin', '123456', 'admin@example.com', '13800138000', 'ADMIN', 1),
+('operator', '123456', 'operator@example.com', '13800138001', 'OPERATOR', 1);
 
 -- 插入示例设备
 INSERT INTO devices (vid, device_name, device_type, location, contact_phone, description) VALUES
@@ -90,6 +90,6 @@ INSERT INTO device_data (vid, device_type, tin, tout, lxin, battery, created_at)
 ('DEV002', 'storage', 21.8, 17.5, 280, 90, NOW());
 
 -- 插入示例报警
-INSERT INTO alarms (device_id, device_name, alarm_type, alarm_level, message, status) VALUES
-(1, '鲜品存储设备001', 'temperature', 'high', '内部温度过高，当前温度25°C', 'active'),
-(2, '鲜品存储设备002', 'battery', 'medium', '电池电量低，当前电量20%', 'active');
+INSERT INTO alarms (device_name, alarm_type, alarm_level, message, status, created_at) VALUES
+('鲜品存储设备001', 'temperature', 'high', '内部温度过高，当前温度25°C', 'active', NOW()),
+('鲜品存储设备002', 'battery', 'medium', '电池电量低，当前电量20%', 'active', NOW());

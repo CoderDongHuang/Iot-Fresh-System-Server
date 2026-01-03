@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface AlarmRepository extends JpaRepository<Alarm, Long> {
     List<Alarm> findByDeviceId(Long deviceId);
+    List<Alarm> findByVid(String vid);
+    List<Alarm> findByDeviceName(String deviceName);
     List<Alarm> findByStatus(String status);
 }

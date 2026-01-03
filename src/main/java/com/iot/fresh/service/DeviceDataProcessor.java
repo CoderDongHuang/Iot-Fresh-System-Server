@@ -6,6 +6,8 @@ import com.iot.fresh.websocket.DeviceWebSocket;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class DeviceDataProcessor {
 
@@ -75,11 +77,13 @@ public class DeviceDataProcessor {
         // 为简化实现，我们直接创建一个报警对象
         AlarmDto alarmDto = new AlarmDto();
         // 实际实现中需要根据vid获取设备ID
+        alarmDto.setVid(vid);
         alarmDto.setDeviceName(vid);
         alarmDto.setAlarmType(alarmType);
         alarmDto.setAlarmLevel(alarmLevel);
         alarmDto.setMessage(message);
         alarmDto.setStatus("active");
+        alarmDto.setTimestamp(LocalDateTime.now());
         
         // 保存报警
         alarmService.createAlarm(alarmDto);

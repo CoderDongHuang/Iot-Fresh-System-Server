@@ -32,6 +32,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // 开发环境使用noop，直接存储和比较明文密码
+        // 注意：NoOpPasswordEncoder在新版本中已过时，仅用于开发测试
+        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
     }
 }

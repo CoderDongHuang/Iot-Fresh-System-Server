@@ -31,9 +31,16 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+# MQTT配置
+mqtt:
+  broker: tcp://localhost:1883
+  client-id: iot-fresh-backend
+  username: 
+  password:
+
 # JWT配置
 jwt:
-  secret: mySecretKeyForIotFresh2022Project
+  secret: mySuperSecretKeyForIotFresh2022ProjectThatIsLongEnoughForHS512AlgorithmAndMeetsThe512BitRequirement
   expiration: 86400 # 24小时
 
 # 日志配置

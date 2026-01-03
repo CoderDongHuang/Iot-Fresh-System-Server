@@ -7,6 +7,7 @@ import com.iot.fresh.entity.DeviceData;
 import com.iot.fresh.repository.DeviceDataRepository;
 import com.iot.fresh.service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,20 +20,28 @@ public class DataServiceImpl implements DataService {
     @Autowired
     private DeviceDataRepository deviceDataRepository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public ApiResponse<DeviceDataDto> saveDeviceData(DeviceDataDto deviceDataDto) {
         DeviceData deviceData = new DeviceData();
         deviceData.setVid(deviceDataDto.getVid());
+        deviceData.setDeviceName(deviceDataDto.getDeviceName());
         deviceData.setDeviceType(deviceDataDto.getDeviceType());
         deviceData.setTin(deviceDataDto.getTin());
         deviceData.setTout(deviceDataDto.getTout());
+        deviceData.setHin(deviceDataDto.getHin());
+        deviceData.setHout(deviceDataDto.getHout());
         deviceData.setLxin(deviceDataDto.getLxin());
+        deviceData.setLight(deviceDataDto.getLight());
         deviceData.setPid(deviceDataDto.getPid());
         deviceData.setVstatus(deviceDataDto.getVstatus());
         deviceData.setBattery(deviceDataDto.getBattery());
         deviceData.setBrightness(deviceDataDto.getBrightness());
         deviceData.setSpeedM1(deviceDataDto.getSpeedM1());
         deviceData.setSpeedM2(deviceDataDto.getSpeedM2());
+        deviceData.setTimestamp(deviceDataDto.getTimestamp()); // 使用转换后的时间戳
 
         DeviceData savedData = deviceDataRepository.save(deviceData);
         DeviceDataDto savedDto = convertToDeviceDataDto(savedData);
@@ -76,7 +85,6 @@ public class DataServiceImpl implements DataService {
 
     private DeviceDataDto parseDeviceDataFromJson(String vid, String json) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             DeviceDataDto dto = objectMapper.readValue(json, DeviceDataDto.class);
             // 如果JSON中没有VID，使用传入的VID
             if (dto.getVid() == null || dto.getVid().isEmpty()) {
@@ -206,17 +214,26 @@ public class DataServiceImpl implements DataService {
         DeviceDataDto dto = new DeviceDataDto();
         dto.setId(deviceData.getId());
         dto.setVid(deviceData.getVid());
+        dto.setDeviceName(deviceData.getDeviceName());
         dto.setDeviceType(deviceData.getDeviceType());
         dto.setTin(deviceData.getTin());
         dto.setTout(deviceData.getTout());
+        dto.setHin(deviceData.getHin());
+        dto.setHout(deviceData.getHout());
         dto.setLxin(deviceData.getLxin());
+        dto.setLight(deviceData.getLight());
         dto.setPid(deviceData.getPid());
         dto.setVstatus(deviceData.getVstatus());
         dto.setBattery(deviceData.getBattery());
         dto.setBrightness(deviceData.getBrightness());
         dto.setSpeedM1(deviceData.getSpeedM1());
         dto.setSpeedM2(deviceData.getSpeedM2());
-        dto.setTimestamp(deviceData.getCreatedAt());
+        // 设置转换后的时间戳，使用设备数据的时间戳或创建时间
+        if (deviceData.getTimestamp() != null) {
+            dto.setTimestamp(deviceData.getTimestamp());
+        } else {
+            dto.setTimestamp(deviceData.getCreatedAt());
+        }
         return dto;
     }
 }

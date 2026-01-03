@@ -26,13 +26,15 @@ public class AuthServiceImpl implements AuthService {
     private JwtUtil jwtUtil;
 
     @Override
-    public ApiResponse<String> login(LoginRequest loginRequest) {
+    public ApiResponse<Map<String, String>> login(LoginRequest loginRequest) {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
         
         if (userOpt.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
             User user = userOpt.get();
             String token = jwtUtil.generateToken(user.getUsername());
-            return ApiResponse.success("登录成功", token);
+            Map<String, String> tokenData = new HashMap<>();
+            tokenData.put("token", token);
+            return ApiResponse.success("登录成功", tokenData);
         }
         
         return ApiResponse.error("用户名或密码错误");

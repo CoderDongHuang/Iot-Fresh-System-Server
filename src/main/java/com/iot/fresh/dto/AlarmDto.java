@@ -6,13 +6,12 @@ import java.time.LocalDateTime;
 
 @Data
 public class AlarmDto {
-    private Long id;
     private Long deviceId;
+    private String vid;
     private String deviceName;
-    private String alarmType; // 温度异常, 湿度异常, 设备故障
-    private String alarmLevel; // high, medium, low
+    private String alarmType;
+    private String alarmLevel;
     private String message;
-    private String status; // active, resolved, closed
-    private LocalDateTime createdAt;
-    private LocalDateTime resolvedAt;
+    private String status;
+    private LocalDateTime timestamp;
 }
