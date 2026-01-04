@@ -76,8 +76,8 @@ CREATE INDEX idx_device_data_created_at ON device_data(created_at);
 
 -- 插入默认管理员用户 (密码是 '123456')
 INSERT INTO users (username, password, email, phone, role, status) VALUES 
-('admin', '123456', 'admin@example.com', '13800138000', 'ADMIN', 1),
-('operator', '123456', 'operator@example.com', '13800138001', 'OPERATOR', 1);
+('admin', '$2a$LEUNZTVbV.T2TfmbsYvevOUSQWCaVMzyQQanb9G73fjzPtkz64AKm', 'admin@example.com', '13800138000', 'ADMIN', 1),
+('operator', '$2a$LEUNZTVbV.T2TfmbsYvevOUSQWCaVMzyQQanb9G73fjzPtkz64AKm', 'operator@example.com', '13800138001', 'OPERATOR', 1);
 
 -- 插入示例设备
 INSERT INTO devices (vid, device_name, device_type, location, contact_phone, description) VALUES

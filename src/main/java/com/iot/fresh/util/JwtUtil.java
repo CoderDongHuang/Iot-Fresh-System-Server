@@ -1,8 +1,6 @@
 package com.iot.fresh.util;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -44,7 +42,7 @@ public class JwtUtil {
     // 检查token是否过期
     private Boolean isTokenExpired(String token) {
         final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
+        return expiration != null && expiration.before(new Date());
     }
 
     // 生成token
@@ -66,7 +64,20 @@ public class JwtUtil {
 
     // 验证token
     public Boolean validateToken(String token, String username) {
-        final String tokenUsername = getUsernameFromToken(token);
-        return (tokenUsername.equals(username) && !isTokenExpired(token));
+        try {
+            final String tokenUsername = getUsernameFromToken(token);
+            return (tokenUsername.equals(username) && !isTokenExpired(token));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    // 安全地获取用户名，不会抛出异常
+    public String getUsernameFromTokenSafely(String token) {
+        try {
+            return getUsernameFromToken(token);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

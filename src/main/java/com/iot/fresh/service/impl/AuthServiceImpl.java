@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -34,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
             String token = jwtUtil.generateToken(user.getUsername());
             Map<String, String> tokenData = new HashMap<>();
             tokenData.put("token", token);
-            return ApiResponse.success("登录成功", tokenData);
+            return ApiResponse.success(tokenData);  // 使用默认消息 "success"
         }
         
         return ApiResponse.error("用户名或密码错误");
@@ -48,7 +50,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ApiResponse<UserDto> getCurrentUser(String token) {
-        String username = jwtUtil.getUsernameFromToken(token);
+        String username = jwtUtil.getUsernameFromTokenSafely(token);
+        
+        if (username == null || username.isEmpty()) {
+            return ApiResponse.error("无效的token");
+        }
+        
         Optional<User> userOpt = userRepository.findByUsername(username);
         
         if (userOpt.isPresent()) {

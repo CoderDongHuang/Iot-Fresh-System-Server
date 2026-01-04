@@ -6,6 +6,8 @@ import com.iot.fresh.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -14,7 +16,7 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ApiResponse<String> login(@RequestBody LoginRequest loginRequest) {
+    public ApiResponse<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
         return authService.login(loginRequest);
     }
 
