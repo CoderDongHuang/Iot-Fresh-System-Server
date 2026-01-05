@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,12 +32,15 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<Map<String, String>> login(LoginRequest loginRequest) {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
         
-        if (userOpt.isPresent() && passwordEncoder.matches(loginRequest.getPassword(), userOpt.get().getPassword())) {
+        if (userOpt.isPresent()) {
             User user = userOpt.get();
-            String token = jwtUtil.generateToken(user.getUsername());
-            Map<String, String> tokenData = new HashMap<>();
-            tokenData.put("token", token);
-            return ApiResponse.success(tokenData);  // 使用默认消息 "success"
+            
+            if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+                String token = jwtUtil.generateToken(user.getUsername());
+                Map<String, String> tokenData = new HashMap<>();
+                tokenData.put("token", token);
+                return ApiResponse.success("登录成功", tokenData);
+            }
         }
         
         return ApiResponse.error("用户名或密码错误");
@@ -50,6 +54,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public ApiResponse<UserDto> getCurrentUser(String token) {
+        // 移除 "Bearer " 前缀（如果存在）
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        
         String username = jwtUtil.getUsernameFromTokenSafely(token);
         
         if (username == null || username.isEmpty()) {
@@ -66,6 +75,8 @@ public class AuthServiceImpl implements AuthService {
             userDto.setEmail(user.getEmail());
             userDto.setPhone(user.getPhone());
             userDto.setRole(user.getRole());
+            // 设置角色列表，将单个角色转换为列表
+            userDto.setRoles(List.of(user.getRole()));
             userDto.setStatus(user.getStatus());
             
             return ApiResponse.success(userDto);

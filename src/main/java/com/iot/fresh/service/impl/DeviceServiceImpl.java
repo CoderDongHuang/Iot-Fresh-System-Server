@@ -2,6 +2,7 @@ package com.iot.fresh.service.impl;
 
 import com.iot.fresh.dto.DeviceDto;
 import com.iot.fresh.dto.ApiResponse;
+import com.iot.fresh.dto.PaginatedResponse;
 import com.iot.fresh.entity.Device;
 import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.DeviceService;
@@ -14,6 +15,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class DeviceServiceImpl implements DeviceService {
@@ -75,6 +80,42 @@ public class DeviceServiceImpl implements DeviceService {
         Device savedDevice = deviceRepository.save(device);
         DeviceDto savedDeviceDto = convertToDeviceDto(savedDevice);
         return ApiResponse.success("设备注册成功", savedDeviceDto);
+    }
+
+    @Override
+    public ApiResponse<PaginatedResponse<DeviceDto>> getDevicesWithPagination(Integer pageNum, Integer pageSize) {
+        try {
+            // 确保页码和页面大小为正数
+            if (pageNum == null || pageNum < 1) pageNum = 1;
+            if (pageSize == null || pageSize < 1) pageSize = 10;
+            
+            System.out.println("Debug - pageNum: " + pageNum + ", pageSize: " + pageSize);
+            
+            // 使用JPA的分页功能
+            org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(pageNum - 1, pageSize);
+            
+            org.springframework.data.domain.Page<Device> devicePage = deviceRepository.findAll(pageable);
+            List<DeviceDto> deviceDtos = devicePage.getContent().stream()
+                    .map(this::convertToDeviceDto)
+                    .collect(Collectors.toList());
+            
+            System.out.println("Debug - Found " + deviceDtos.size() + " devices");
+            
+            // 创建分页响应对象，符合前端期望的格式
+            PaginatedResponse<DeviceDto> paginatedResponse = new PaginatedResponse<>(
+                deviceDtos, 
+                devicePage.getTotalElements(), 
+                pageNum, 
+                pageSize
+            );
+            
+            return ApiResponse.success(paginatedResponse);
+        } catch (Exception e) {
+            System.err.println("Error in getDevicesWithPagination: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error("获取设备列表失败: " + e.getMessage());
+        }
     }
 
     @Override

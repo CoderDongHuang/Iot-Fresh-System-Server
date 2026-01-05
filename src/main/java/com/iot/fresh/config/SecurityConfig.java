@@ -27,9 +27,11 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()  // WebSocket路径
                 .requestMatchers("/websocket/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/error").permitAll()  // 允许错误页面访问
                 .anyRequest().authenticated()
             )
             .httpBasic(AbstractHttpConfigurer::disable)

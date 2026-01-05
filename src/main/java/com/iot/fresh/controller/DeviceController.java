@@ -2,6 +2,7 @@ package com.iot.fresh.controller;
 
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.dto.DeviceDto;
+import com.iot.fresh.dto.PaginatedResponse;
 import com.iot.fresh.service.DeviceService;
 import com.iot.fresh.service.DataService;
 import com.iot.fresh.service.DeviceDataProcessor;
@@ -26,8 +27,20 @@ public class DeviceController {
     private DeviceDataProcessor deviceDataProcessor;
 
     @GetMapping
-    public ApiResponse<List<DeviceDto>> getDevices() {
-        return deviceService.getAllDevices();
+    public ApiResponse<PaginatedResponse<DeviceDto>> getDevices(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        System.out.println("Debug - DeviceController.getDevices called with pageNum: " + pageNum + ", pageSize: " + pageSize);
+        return deviceService.getDevicesWithPagination(pageNum, pageSize);
+    }
+    
+    // 为前端兼容添加额外的端点
+    @GetMapping("/list")
+    public ApiResponse<PaginatedResponse<DeviceDto>> getDevicesList(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        System.out.println("Debug - DeviceController.getDevicesList called with pageNum: " + pageNum + ", pageSize: " + pageSize);
+        return deviceService.getDevicesWithPagination(pageNum, pageSize);
     }
 
     @GetMapping("/{vid}")
