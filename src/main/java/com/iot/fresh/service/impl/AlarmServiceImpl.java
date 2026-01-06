@@ -2,6 +2,7 @@ package com.iot.fresh.service.impl;
 
 import com.iot.fresh.dto.AlarmDataDto;
 import com.iot.fresh.dto.AlarmDto;
+import com.iot.fresh.dto.AlarmStatisticsDto;
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.entity.Alarm;
 import com.iot.fresh.repository.AlarmRepository;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AlarmServiceImpl implements AlarmService {
@@ -121,6 +124,105 @@ public class AlarmServiceImpl implements AlarmService {
 
         alarmRepository.save(alarm);
         return ApiResponse.success("报警创建成功", alarm.getId().toString());
+    }
+    
+    @Override
+    public ApiResponse<List<AlarmStatisticsDto>> getAlarmStatistics() {
+        // 获取所有报警记录
+        List<Alarm> alarms = alarmRepository.findAll();
+        
+        // 统计每种报警类型的总数
+        Map<String, Long> typeCounts = new HashMap<>();
+        // 统计每种报警类型的主要级别
+        Map<String, String> typeLevels = new HashMap<>();
+        // 统计每种类型中各级别的数量
+        Map<String, Map<String, Long>> typeLevelCounts = new HashMap<>();
+        
+        for (Alarm alarm : alarms) {
+            String type = mapAlarmTypeToChinese(alarm.getAlarmType());
+            String level = mapAlarmLevelToStandardLevel(alarm.getAlarmLevel());
+            
+            if (type != null && level != null) {
+                // 统计类型总数
+                typeCounts.merge(type, 1L, Long::sum);
+                
+                // 统计类型级别的分布
+                typeLevelCounts.computeIfAbsent(type, k -> new HashMap<>())
+                               .merge(level, 1L, Long::sum);
+            }
+        }
+        
+        // 确定每种类型的主要级别（数量最多的级别）
+        for (Map.Entry<String, Map<String, Long>> entry : typeLevelCounts.entrySet()) {
+            String type = entry.getKey();
+            Map<String, Long> levelCounts = entry.getValue();
+            
+            String dominantLevel = levelCounts.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse("medium");
+                    
+            typeLevels.put(type, dominantLevel);
+        }
+        
+        // 转换为AlarmStatisticsDto列表
+        List<AlarmStatisticsDto> result = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : typeCounts.entrySet()) {
+            String type = entry.getKey();
+            Long count = entry.getValue();
+            String level = typeLevels.getOrDefault(type, "medium");
+            
+            AlarmStatisticsDto dto = new AlarmStatisticsDto();
+            dto.setType(type);
+            dto.setCount(count);
+            dto.setLevel(level);
+            result.add(dto);
+        }
+        
+        return ApiResponse.success("获取成功", result);
+    }
+    
+    private String mapAlarmTypeToChinese(String alarmType) {
+        if (alarmType == null) {
+            return "未知类型";
+        }
+        
+        switch (alarmType.toLowerCase()) {
+            case "temperature":
+                return "温度异常";
+            case "humidity":
+                return "湿度异常";
+            case "light":
+                return "光照异常";
+            case "device":
+                return "设备故障";
+            case "battery":
+                return "电池异常";
+            default:
+                return alarmType; // 如果没有匹配项，返回原值
+        }
+    }
+    
+    private String mapAlarmLevelToStandardLevel(String alarmLevel) {
+        if (alarmLevel == null) {
+            return "medium";
+        }
+        
+        switch (alarmLevel.toLowerCase()) {
+            case "critical":
+            case "high":
+            case "medium":
+            case "low":
+                return alarmLevel.toLowerCase();
+            case "高":
+                return "high";
+            case "中":
+                return "medium";
+            case "低":
+                return "low";
+            default:
+                return "medium"; // 默认为中等级别
+        }
     }
     
     private AlarmDto convertToDto(Alarm alarm) {
