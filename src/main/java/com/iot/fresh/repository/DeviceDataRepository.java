@@ -1,6 +1,7 @@
 package com.iot.fresh.repository;
 
 import com.iot.fresh.entity.DeviceData;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,4 +18,6 @@ public interface DeviceDataRepository extends JpaRepository<DeviceData, Long> {
     List<DeviceData> findByVidAndTimeRange(@Param("vid") String vid, 
                                           @Param("startTime") LocalDateTime startTime, 
                                           @Param("endTime") LocalDateTime endTime);
+    
+    List<DeviceData> findByVidOrderByCreatedAtDesc(String vid, Pageable pageable);
 }

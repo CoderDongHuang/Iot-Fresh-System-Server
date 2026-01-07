@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -134,8 +135,19 @@ public class DataServiceImpl implements DataService {
                 }
             }
             
+            // 支持小写"lxin"格式
             if (json.contains("\"lxin\"")) {
                 int start = json.indexOf("\"lxin\":") + 7;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 6 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setLxin(Integer.parseInt(value));
+                }
+            }
+            // 支持大写"LXin"格式（来自硬件）
+            else if (json.contains("\"LXin\"")) {
+                int start = json.indexOf("\"LXin\":") + 7;
                 int end = json.indexOf(",", start);
                 if (end == -1) end = json.indexOf("}", start);
                 if (start > 6 && end > start) {
@@ -235,5 +247,32 @@ public class DataServiceImpl implements DataService {
             dto.setTimestamp(deviceData.getCreatedAt());
         }
         return dto;
+    }
+    
+    @Override
+    public ApiResponse<List<Map<String, Object>>> getLightDataByVid(String vid, LocalDateTime startTime, LocalDateTime endTime) {
+        // 设置默认时间范围（1小时前到现在）
+        if (startTime == null) {
+            startTime = LocalDateTime.now().minusHours(1);
+        }
+        if (endTime == null) {
+            endTime = LocalDateTime.now();
+        }
+
+        // 查询设备光照数据
+        List<DeviceData> deviceDataList = deviceDataRepository.findByVidAndTimeRange(vid, startTime, endTime);
+
+        // 转换为前端期望的格式
+        List<Map<String, Object>> result = deviceDataList.stream().map(data -> {
+            Map<String, Object> item = new java.util.HashMap<>();
+            // 使用ISO 8601格式的时间字符串
+            item.put("timestamp", data.getCreatedAt().toString());
+            // 优先使用lxin字段，如果没有则使用light字段
+            Integer lightValue = data.getLxin() != null ? data.getLxin() : data.getLight();
+            item.put("value", lightValue != null ? lightValue : 0);
+            return item;
+        }).collect(java.util.stream.Collectors.toList());
+
+        return ApiResponse.success("获取成功", result);
     }
 }

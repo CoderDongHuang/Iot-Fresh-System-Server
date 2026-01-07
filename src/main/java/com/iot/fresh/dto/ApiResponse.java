@@ -31,4 +31,8 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(Integer code, String message) {
         return new ApiResponse<>(code, message, null);
     }
+    
+    public boolean isSuccess() {
+        return code != null && code == 200;
+    }
 }

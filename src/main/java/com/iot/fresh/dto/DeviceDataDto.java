@@ -78,4 +78,15 @@ public class DeviceDataDto {
     public LocalDateTime getConvertedTimestamp() {
         return this.timestamp;
     }
+    
+    // 添加createdAt字段用于显示创建时间
+    private LocalDateTime createdAt;
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 }
