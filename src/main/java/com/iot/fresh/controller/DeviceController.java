@@ -34,8 +34,8 @@ public class DeviceController {
         return deviceService.getDevicesWithPagination(pageNum, pageSize);
     }
     
-    // 为前端兼容添加额外的端点
-    @GetMapping("/list")
+    // 为向前兼容添加额外的端点（注意：此端点与DeviceManagementController中的/api/device/list可能冲突，仅保留用于向后兼容）
+    @GetMapping("/list-all")
     public ApiResponse<PaginatedResponse<DeviceDto>> getDevicesList(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {

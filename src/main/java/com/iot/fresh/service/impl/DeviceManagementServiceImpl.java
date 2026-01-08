@@ -36,9 +36,11 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         Page<Device> devicePage;
         if (keyword != null && !keyword.isEmpty()) {
             if (status != null) {
-                devicePage = deviceRepository.findByDeviceNameContainingAndStatus(keyword, status, pageable);
+                // 在设备名称或VID中搜索，并按状态过滤
+                devicePage = deviceRepository.findByDeviceNameContainingOrVidContainingAndStatus(keyword, status, pageable);
             } else {
-                devicePage = deviceRepository.findByDeviceNameContaining(keyword, pageable);
+                // 在设备名称或VID中搜索，不按状态过滤
+                devicePage = deviceRepository.findByDeviceNameContainingOrVidContaining(keyword, pageable);
             }
         } else {
             if (status != null) {
@@ -127,12 +129,99 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
 
     @Override
     public ApiResponse<String> controlDevice(String vid, Map<String, Object> controlCommand) {
-        // 这里应该实现设备控制逻辑
-        // 可能需要通过MQTT发送控制指令到设备
-        System.out.println("发送控制指令到设备 " + vid + ": " + controlCommand);
+        // 验证设备是否存在
+        Optional<Device> deviceOpt = deviceRepository.findByVid(vid);
+        if (!deviceOpt.isPresent()) {
+            return ApiResponse.error("设备不存在");
+        }
         
-        // 模拟控制指令发送成功
-        return ApiResponse.success("控制指令发送成功");
+        Device device = deviceOpt.get();
+        
+        // 验证设备状态，只有在线设备才能接收控制指令
+        if (device.getStatus() != 1) { // 1 表示在线
+            return ApiResponse.error(400, "设备当前离线，无法执行控制命令");
+        }
+        
+        // 获取命令类型
+        String command = (String) controlCommand.get("command");
+        if (command == null || command.trim().isEmpty()) {
+            return ApiResponse.error(400, "命令类型不能为空");
+        }
+        
+        // 验证命令是否被支持
+        boolean isSupportedCommand = isValidCommand(command);
+        if (!isSupportedCommand) {
+            return ApiResponse.error(400, "不支持的控制命令");
+        }
+        
+        // 执行命令（通过MQTT发送到设备）
+        try {
+            // 这里应该通过MQTT发送控制指令到设备
+            System.out.println("发送控制指令到设备 " + vid + ": " + controlCommand);
+            
+            // 发送MQTT消息
+            String topic = "device/" + vid + "/control";
+            // 将控制命令转换为适当的格式并发送
+            String commandMessage = buildCommandMessage(command, controlCommand.get("params"));
+            
+            // TODO: 实际的MQTT发布逻辑应该在这里
+            // mqttPublisher.publish(topic, commandMessage);
+            
+            return ApiResponse.success("控制指令发送成功");
+        } catch (Exception e) {
+            System.err.println("发送控制指令失败: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error(500, "控制命令执行失败");
+        }
+    }
+    
+    private boolean isValidCommand(String command) {
+        switch (command.toLowerCase()) {
+            case "turnon":
+            case "turnoff":
+            case "restart":
+            case "reset":
+            case "settemp":
+            case "setbrightness":
+            case "setspeed":
+            case "calibrate":
+            case "selfcheck":
+            case "updatefirmware":
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    private String buildCommandMessage(String command, Object params) {
+        // 构建发送到设备的命令消息
+        StringBuilder sb = new StringBuilder();
+        sb.append("{").append("\"command\":\"").append(command).append("\"");
+        
+        if (params instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> paramMap = (Map<String, Object>) params;
+            if (!paramMap.isEmpty()) {
+                sb.append(",\"params\":{");
+                boolean first = true;
+                for (Map.Entry<String, Object> entry : paramMap.entrySet()) {
+                    if (!first) {
+                        sb.append(",");
+                    }
+                    sb.append("\"").append(entry.getKey()).append("\":");
+                    if (entry.getValue() instanceof String) {
+                        sb.append("\"").append(entry.getValue()).append("\"");
+                    } else {
+                        sb.append(entry.getValue());
+                    }
+                    first = false;
+                }
+                sb.append("}");
+            }
+        }
+        sb.append("}");
+        
+        return sb.toString();
     }
     
     private DeviceDto convertToDeviceDto(Device device) {

@@ -16,6 +16,17 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     // 根据设备名称模糊查询
     Page<Device> findByDeviceNameContaining(String deviceName, Pageable pageable);
     
+    // 根据设备VID模糊查询
+    Page<Device> findByVidContaining(String vid, Pageable pageable);
+    
+    // 根据设备名称或VID模糊查询
+    @Query("SELECT d FROM Device d WHERE d.deviceName LIKE %:keyword% OR d.vid LIKE %:keyword%")
+    Page<Device> findByDeviceNameContainingOrVidContaining(String keyword, Pageable pageable);
+    
+    // 根据设备名称或VID模糊查询及状态
+    @Query("SELECT d FROM Device d WHERE (d.deviceName LIKE %:keyword% OR d.vid LIKE %:keyword%) AND d.status = :status")
+    Page<Device> findByDeviceNameContainingOrVidContainingAndStatus(String keyword, Integer status, Pageable pageable);
+    
     // 根据状态查询
     Page<Device> findByStatus(Integer status, Pageable pageable);
     

@@ -23,9 +23,36 @@ public class DeviceManagementController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer status) {
+            @RequestParam(required = false) String status) {
         
-        return deviceManagementService.getDeviceList(pageNum, pageSize, keyword, status);
+        // 将字符串状态转换为整数状态
+        Integer statusInt = null;
+        if (status != null) {
+            switch (status.toLowerCase()) {
+                case "online":
+                    statusInt = 1;
+                    break;
+                case "offline":
+                    statusInt = 0;
+                    break;
+                case "fault":
+                    statusInt = 2;
+                    break;
+                case "maintenance":
+                    statusInt = 3;
+                    break;
+                default:
+                    try {
+                        statusInt = Integer.parseInt(status);
+                    } catch (NumberFormatException e) {
+                        // 如果无法解析为整数，则忽略状态过滤
+                        statusInt = null;
+                    }
+                    break;
+            }
+        }
+        
+        return deviceManagementService.getDeviceList(pageNum, pageSize, keyword, statusInt);
     }
 
     // 2. 设备详情接口
