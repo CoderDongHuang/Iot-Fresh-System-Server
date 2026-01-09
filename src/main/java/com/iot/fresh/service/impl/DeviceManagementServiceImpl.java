@@ -8,6 +8,9 @@ import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.DeviceManagementService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
+import org.springframework.messaging.MessagingException;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,9 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
     
     @Autowired
     private DeviceDataRepository deviceDataRepository;
+
+    @Autowired(required = false) // 可选注入，以防MQTT配置未启用
+    private MqttPahoMessageHandler mqttOutbound;
 
     @Override
     public ApiResponse<PaginatedResponse<DeviceDto>> getDeviceList(Integer pageNum, Integer pageSize, String keyword, Integer status) {
@@ -156,18 +162,30 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         
         // 执行命令（通过MQTT发送到设备）
         try {
-            // 这里应该通过MQTT发送控制指令到设备
-            System.out.println("发送控制指令到设备 " + vid + ": " + controlCommand);
-            
             // 发送MQTT消息
             String topic = "device/" + vid + "/control";
             // 将控制命令转换为适当的格式并发送
             String commandMessage = buildCommandMessage(command, controlCommand.get("params"));
             
-            // TODO: 实际的MQTT发布逻辑应该在这里
-            // mqttPublisher.publish(topic, commandMessage);
+            // 检查MQTT处理器是否存在
+            if (mqttOutbound != null) {
+                // 发布MQTT消息
+                mqttOutbound.handleMessage(MessageBuilder.withPayload(commandMessage)
+                    .setHeader("mqtt_topic", topic)
+                    .build());
+                
+                System.out.println("已发送控制指令到设备 " + vid + "，主题: " + topic + "，消息: " + commandMessage);
+            } else {
+                // 如果没有MQTT处理器，至少记录日志
+                System.out.println("MQTT处理器不可用，无法发送控制指令到设备 " + vid + ": " + commandMessage);
+                return ApiResponse.error(500, "MQTT服务不可用，无法发送控制指令");
+            }
             
             return ApiResponse.success("控制指令发送成功");
+        } catch (MessagingException e) {
+            System.err.println("发送MQTT控制指令失败: " + e.getMessage());
+            e.printStackTrace();
+            return ApiResponse.error(500, "MQTT消息发送失败: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("发送控制指令失败: " + e.getMessage());
             e.printStackTrace();
