@@ -44,8 +44,8 @@ public class MqttMessageHandler {
                         processAlarmData(vid, payload);
                         break;
                     case "status":
-                        // 处理状态数据
-                        dataService.processDeviceDataFromMqtt(vid, payload);
+                        // 处理状态数据 - 直接更新设备状态
+                        updateDeviceStatusDirectly(vid, payload);
                         break;
                     case "rfid":
                         // 处理RFID数据
@@ -91,6 +91,75 @@ public class MqttMessageHandler {
     }
 
     // 手动解析报警数据作为备用
+    /**
+     * 直接更新设备状态
+     */
+    private void updateDeviceStatusDirectly(String vid, String payload) {
+        try {
+            // 解析状态更新消息
+            Integer status = parseStatusFromPayload(payload);
+            if (status != null) {
+                // 更新设备状态到devices表
+                dataService.updateDeviceStatus(vid, status);
+                System.out.println("Directly updated device status for VID: " + vid + ", status: " + status);
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating device status directly: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 从载荷中解析状态值
+     */
+    private Integer parseStatusFromPayload(String payload) {
+        try {
+            // 尝试使用Jackson解析
+            java.util.Map<String, Object> jsonMap = objectMapper.readValue(payload, java.util.Map.class);
+            // 同时支持status和vstatus字段
+            Object statusObj = jsonMap.get("status");
+            if (statusObj == null) {
+                statusObj = jsonMap.get("vstatus");
+            }
+            
+            if (statusObj != null) {
+                if (statusObj instanceof Number) {
+                    return ((Number) statusObj).intValue();
+                } else if (statusObj instanceof String) {
+                    return Integer.parseInt((String) statusObj);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error parsing status with Jackson: " + e.getMessage());
+            // 回退到手动解析 - 同时支持status和vstatus
+            try {
+                // 先尝试解析status
+                if (payload.contains("\"status\"")) {
+                    int start = payload.indexOf("\"status\":") + 9;
+                    int end = payload.indexOf(",", start);
+                    if (end == -1) end = payload.indexOf("}", start);
+                    if (start > 8 && end > start) {
+                        String value = payload.substring(start, end).trim();
+                        return Integer.parseInt(value);
+                    }
+                }
+                // 如果没有status，尝试解析vstatus
+                else if (payload.contains("\"vstatus\"")) {
+                    int start = payload.indexOf("\"vstatus\":") + 10;
+                    int end = payload.indexOf(",", start);
+                    if (end == -1) end = payload.indexOf("}", start);
+                    if (start > 9 && end > start) {
+                        String value = payload.substring(start, end).trim();
+                        return Integer.parseInt(value);
+                    }
+                }
+            } catch (Exception ex) {
+                System.err.println("Error parsing status manually: " + ex.getMessage());
+            }
+        }
+        return null;
+    }
+
     private AlarmDataDto parseAlarmDataManually(String vid, String json) {
         try {
             AlarmDataDto dto = new AlarmDataDto();

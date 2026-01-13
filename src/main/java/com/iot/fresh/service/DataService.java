@@ -12,4 +12,5 @@ public interface DataService {
     ApiResponse<List<DeviceDataDto>> getDeviceHistoryData(String vid, LocalDateTime startTime, LocalDateTime endTime);
     ApiResponse<List<Map<String, Object>>> getLightDataByVid(String vid, LocalDateTime startTime, LocalDateTime endTime);
     void processDeviceDataFromMqtt(String vid, String payload);
+    void updateDeviceStatus(String vid, Integer status);
 }

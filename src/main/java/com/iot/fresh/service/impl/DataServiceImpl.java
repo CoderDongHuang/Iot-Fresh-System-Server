@@ -3,8 +3,10 @@ package com.iot.fresh.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.DeviceDataDto;
 import com.iot.fresh.dto.ApiResponse;
+import com.iot.fresh.entity.Device;
 import com.iot.fresh.entity.DeviceData;
 import com.iot.fresh.repository.DeviceDataRepository;
+import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,6 +23,9 @@ public class DataServiceImpl implements DataService {
 
     @Autowired
     private DeviceDataRepository deviceDataRepository;
+
+    @Autowired
+    private DeviceRepository deviceRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -69,17 +75,63 @@ public class DataServiceImpl implements DataService {
 
     @Override
     public void processDeviceDataFromMqtt(String vid, String payload) {
-        // 解析MQTT消息并保存到数据库
+        // 解析MQTT消息并根据内容决定处理方式
         try {
-            // 这里应该使用JSON解析库，如Jackson或Gson
-            // 为简化，这里使用简单的字符串解析
             DeviceDataDto deviceDataDto = parseDeviceDataFromJson(vid, payload);
             if (deviceDataDto != null) {
-                saveDeviceData(deviceDataDto);
-                System.out.println("Received and saved device data for VID: " + vid);
+                // 输出vstatus的值以进行调试
+                System.out.println("Received device data for VID: " + vid + ", vstatus: " + deviceDataDto.getVstatus());
+                
+                // 检查是否是设备状态更新（包含vstatus字段）
+                if (deviceDataDto.getVstatus() != null) {
+                    // 这是设备状态更新，更新设备主状态
+                    System.out.println("Received status update, updating device status for VID: " + vid + ", vstatus: " + deviceDataDto.getVstatus());
+                    updateDeviceMainStatus(vid, deviceDataDto.getVstatus());
+                    
+                    // 对于状态更新，不存储到device_data表
+                    System.out.println("Status update processed for VID: " + vid + ", skipped saving to device_data table");
+                } else {
+                    // 这是普通数据上报，包含温度、湿度、速度、亮度等参数，存储到device_data表
+                    saveDeviceData(deviceDataDto);
+                    System.out.println("Received and saved device data for VID: " + vid + 
+                        ", tin: " + deviceDataDto.getTin() + 
+                        ", tout: " + deviceDataDto.getTout() + 
+                        ", hin: " + deviceDataDto.getHin() + 
+                        ", hout: " + deviceDataDto.getHout() + 
+                        ", lxin: " + deviceDataDto.getLxin() + 
+                        ", light: " + deviceDataDto.getLight() + 
+                        ", battery: " + deviceDataDto.getBattery() + 
+                        ", brightness: " + deviceDataDto.getBrightness() + 
+                        ", speedM1: " + deviceDataDto.getSpeedM1() + 
+                        ", speedM2: " + deviceDataDto.getSpeedM2());
+                }
             }
         } catch (Exception e) {
             System.err.println("Error processing MQTT message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 更新设备的主状态（在线/离线/故障等）
+     */
+    private void updateDeviceMainStatus(String vid, Integer vstatus) {
+        try {
+            Optional<Device> deviceOpt = deviceRepository.findByVid(vid);
+            if (deviceOpt.isPresent()) {
+                Device device = deviceOpt.get();
+                
+                // 将vstatus转换为设备状态
+                // 假设vstatus: 0=离线, 1=在线, 2=故障, 3=维护
+                // 这里可以根据实际需要调整映射关系
+                device.setStatus(vstatus);
+                device.setLastHeartbeat(LocalDateTime.now());
+                
+                deviceRepository.save(device);
+                System.out.println("Updated device status for VID: " + vid + ", status: " + vstatus);
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating device status: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -274,5 +326,22 @@ public class DataServiceImpl implements DataService {
         }).collect(java.util.stream.Collectors.toList());
 
         return ApiResponse.success("获取成功", result);
+    }
+    
+    @Override
+    public void updateDeviceStatus(String vid, Integer status) {
+        try {
+            Optional<Device> deviceOpt = deviceRepository.findByVid(vid);
+            if (deviceOpt.isPresent()) {
+                Device device = deviceOpt.get();
+                device.setStatus(status);
+                device.setLastHeartbeat(LocalDateTime.now());
+                deviceRepository.save(device);
+                System.out.println("Updated device status in devices table for VID: " + vid + ", status: " + status);
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating device status: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

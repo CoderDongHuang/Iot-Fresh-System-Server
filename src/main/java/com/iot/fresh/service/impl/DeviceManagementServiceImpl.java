@@ -1,5 +1,6 @@
 package com.iot.fresh.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.*;
 import com.iot.fresh.entity.Device;
 import com.iot.fresh.entity.DeviceData;
@@ -33,6 +34,8 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
 
     @Autowired(required = false) // 可选注入，以防MQTT配置未启用
     private MqttPahoMessageHandler mqttOutbound;
+    
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public ApiResponse<PaginatedResponse<DeviceDto>> getDeviceList(Integer pageNum, Integer pageSize, String keyword, Integer status) {
@@ -143,10 +146,12 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         
         Device device = deviceOpt.get();
         
-        // 验证设备状态，只有在线设备才能接收控制指令
-        if (device.getStatus() != 1) { // 1 表示在线
-            return ApiResponse.error(400, "设备当前离线，无法执行控制命令");
-        }
+        // 可以控制各种状态的设备，包括离线、故障、维护等状态
+        // 实际能否执行命令取决于设备本身的响应能力
+        // 注释掉状态验证，允许控制所有状态的设备
+        // if (device.getStatus() != 1) { // 1 表示在线
+        //     return ApiResponse.error(400, "设备当前离线，无法执行控制命令");
+        // }
         
         // 获取命令类型
         String command = (String) controlCommand.get("command");
@@ -213,33 +218,52 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
     
     private String buildCommandMessage(String command, Object params) {
         // 构建发送到设备的命令消息
-        StringBuilder sb = new StringBuilder();
-        sb.append("{").append("\"command\":\"").append(command).append("\"");
+        Map<String, Object> message = new HashMap<>();
+        message.put("command", command);
         
         if (params instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> paramMap = (Map<String, Object>) params;
             if (!paramMap.isEmpty()) {
-                sb.append(",\"params\":{");
-                boolean first = true;
-                for (Map.Entry<String, Object> entry : paramMap.entrySet()) {
-                    if (!first) {
-                        sb.append(",");
-                    }
-                    sb.append("\"").append(entry.getKey()).append("\":");
-                    if (entry.getValue() instanceof String) {
-                        sb.append("\"").append(entry.getValue()).append("\"");
-                    } else {
-                        sb.append(entry.getValue());
-                    }
-                    first = false;
-                }
-                sb.append("}");
+                message.put("params", paramMap);
             }
         }
-        sb.append("}");
         
-        return sb.toString();
+        try {
+             // 使用类级别的ObjectMapper实例来序列化JSON
+             return objectMapper.writeValueAsString(message);
+         } catch (Exception e) {
+             // 如果JSON序列化失败，回退到手动构建字符串
+             System.err.println("JSON序列化失败: " + e.getMessage());
+             // 手动构建JSON字符串
+             StringBuilder sb = new StringBuilder();
+             sb.append("{\"command\":\"").append(command).append("\"");
+             
+             if (params instanceof Map) {
+                 @SuppressWarnings("unchecked")
+                 Map<String, Object> paramMap = (Map<String, Object>) params;
+                 if (!paramMap.isEmpty()) {
+                     sb.append(",\"params\":{");
+                     boolean first = true;
+                     for (Map.Entry<String, Object> entry : paramMap.entrySet()) {
+                         if (!first) {
+                             sb.append(",");
+                         }
+                         sb.append("\"").append(entry.getKey()).append("\":");
+                         if (entry.getValue() instanceof String) {
+                             sb.append("\"").append(entry.getValue()).append("\"");
+                         } else {
+                             sb.append(entry.getValue());
+                         }
+                         first = false;
+                     }
+                     sb.append("}");
+                 }
+             }
+             sb.append("}");
+             
+             return sb.toString();
+         }
     }
     
     private DeviceDto convertToDeviceDto(Device device) {

@@ -70,11 +70,11 @@ public class MqttConfig {
     }
 
     @Bean
-    public MessageHandler mqttOutbound() {
+    public MqttPahoMessageHandler mqttOutbound() {
         MqttPahoMessageHandler messageHandler = 
             new MqttPahoMessageHandler(clientId + "-outbound", mqttClientFactory());
         messageHandler.setAsync(true);
-        messageHandler.setDefaultTopic("device/command");
+        // 不设置默认主题，因为在发送消息时会动态指定主题
         return messageHandler;
     }
 }

@@ -41,7 +41,7 @@ public class DashboardServiceImpl implements DashboardService {
         // 数据增长（模拟数据）
         statistics.put("dataGrowth", 5.5);
         
-        // 未解决报警
+        // 未解决报警 (active状态对应pending)
         long unresolvedAlarms = alarmRepository.findByStatus("active").size();
         statistics.put("unresolvedAlarms", unresolvedAlarms);
         
