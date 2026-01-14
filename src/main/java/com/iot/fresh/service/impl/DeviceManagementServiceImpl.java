@@ -84,7 +84,6 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         DeviceDetailDto detailDto = new DeviceDetailDto();
         
         // 复制基本属性
-        BeanUtils.copyProperties(device, detailDto);
         detailDto.setVid(device.getVid());
         detailDto.setDeviceName(device.getDeviceName());
         detailDto.setDeviceType(device.getDeviceType());
@@ -92,8 +91,15 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         detailDto.setLocation(device.getLocation());
         detailDto.setContactPhone(device.getContactPhone());
         detailDto.setDescription(device.getDescription());
-        detailDto.setCreateTime(device.getCreatedAt());
+        
+        // 设置多种时间格式以满足API规范
         detailDto.setLastOnlineTime(device.getLastHeartbeat());
+        detailDto.setLastOnline_time(device.getLastHeartbeat());
+        detailDto.setLast_heartbeat(device.getLastHeartbeat());
+        detailDto.setLastHeartbeat(device.getLastHeartbeat());
+        detailDto.setCreateTime(device.getCreatedAt());
+        detailDto.setCreate_time(device.getCreatedAt());
+        
         detailDto.setRemarks(device.getDescription()); // 使用描述字段作为备注
         
         // 获取设备当前数据
@@ -268,13 +274,23 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
     
     private DeviceDto convertToDeviceDto(Device device) {
         DeviceDto dto = new DeviceDto();
+        dto.setId(device.getId());
         dto.setVid(device.getVid());
         dto.setDeviceName(device.getDeviceName());
         dto.setDeviceType(device.getDeviceType());
         dto.setStatus(device.getStatus());
         dto.setLocation(device.getLocation());
+        dto.setContactPhone(device.getContactPhone());
+        dto.setDescription(device.getDescription());
+        
+        // 设置多种时间格式以满足API规范
         dto.setLastOnlineTime(device.getLastHeartbeat());
-        dto.setCreatedAt(device.getCreatedAt());
+        dto.setLastOnline_time(device.getLastHeartbeat());
+        dto.setLast_heartbeat(device.getLastHeartbeat());
+        dto.setLastHeartbeat(device.getLastHeartbeat());
+        dto.setCreateTime(device.getCreatedAt());
+        dto.setCreate_time(device.getCreatedAt());
+        dto.setUpdatedAt(device.getUpdatedAt());
         
         // 获取设备当前数据
         DeviceCurrentDataDto currentData = getCurrentDataForDevice(device.getVid());

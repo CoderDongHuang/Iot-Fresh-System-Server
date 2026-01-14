@@ -138,9 +138,16 @@ public class DeviceServiceImpl implements DeviceService {
         deviceDto.setLocation(device.getLocation());
         deviceDto.setContactPhone(device.getContactPhone());
         deviceDto.setDescription(device.getDescription());
+        
+        // 设置多种时间格式以满足API规范
+        deviceDto.setLastOnlineTime(device.getLastHeartbeat());
+        deviceDto.setLastOnline_time(device.getLastHeartbeat());
+        deviceDto.setLast_heartbeat(device.getLastHeartbeat());
         deviceDto.setLastHeartbeat(device.getLastHeartbeat());
-        deviceDto.setCreatedAt(device.getCreatedAt());
+        deviceDto.setCreateTime(device.getCreatedAt());
+        deviceDto.setCreate_time(device.getCreatedAt());
         deviceDto.setUpdatedAt(device.getUpdatedAt());
+        
         return deviceDto;
     }
 }
