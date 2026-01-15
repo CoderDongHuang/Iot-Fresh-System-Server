@@ -48,6 +48,15 @@ public class DeviceDataController {
      *     ...
      *   ]
      * }
+     * 
+     * @param vid 设备唯一标识符
+     * @param startTime 开始时间（可选）
+     * @param endTime 结束时间（可选）
+     * @param timeRange 时间范围（可选）
+     * @param metric 指标类型（可选）
+     * @return ApiResponse<List<Map<String, Object>>> 包含设备历史数据的响应对象
+     * @author donghuang
+     * @since 2026
      */
     @GetMapping("/history-data/{vid}")
     public ApiResponse<List<Map<String, Object>>> getHistoryData(@PathVariable String vid,

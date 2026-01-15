@@ -344,4 +344,9 @@ public class DataServiceImpl implements DataService {
             e.printStackTrace();
         }
     }
+    
+    @Override
+    public DeviceData getLatestDeviceData(String vid) {
+        return deviceDataRepository.findTopByVidOrderByCreatedAtDesc(vid);
+    }
 }

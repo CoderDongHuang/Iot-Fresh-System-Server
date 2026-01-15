@@ -3,12 +3,15 @@ package com.iot.fresh.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
 @Data
-public class DeviceDataDto {
+public class DeviceDataDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     private Long id;
     private String vid;
     private String deviceName; // 设备名称

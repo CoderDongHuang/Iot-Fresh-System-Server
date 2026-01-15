@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse<T> {
+public class ApiResponse<T> implements Serializable {
     private Integer code;  // 前端期望的code字段
     private String msg;    // 前端期望的msg字段
     private T data;        // 数据字段

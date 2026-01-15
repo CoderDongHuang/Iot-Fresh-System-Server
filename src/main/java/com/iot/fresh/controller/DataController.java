@@ -19,6 +19,16 @@ public class DataController {
     @Autowired
     private DataService dataService;
 
+    /**
+ * 获取设备历史数据
+ * 
+ * @param vid 设备唯一标识符
+ * @param startTime 开始时间戳（可选）
+ * @param endTime 结束时间戳（可选）
+ * @return ApiResponse<List<DeviceDataDto>> 包含设备历史数据的响应对象
+ * @author donghuang
+ * @since 2026
+ */
     @GetMapping("/history")
     public ApiResponse<List<DeviceDataDto>> getHistoryData(@RequestParam String vid,
                                                            @RequestParam(required = false) Long startTime,
@@ -128,7 +138,17 @@ public class DataController {
     }
     */
 
-    // 4. 光照历史数据接口 - 按前端要求格式化返回
+    /**
+ * 获取光照历史数据
+ * 
+ * @param vid 设备唯一标识符
+ * @param startTime 开始时间（可选）
+ * @param endTime 结束时间（可选）
+ * @param timeRange 时间范围（可选）
+ * @return ApiResponse<List<Map<String, Object>>> 包含光照历史数据的响应对象
+ * @author donghuang
+ * @since 2026
+ */
     @GetMapping("/light/{vid}")
     public ApiResponse<List<Map<String, Object>>> getLightHistory(@PathVariable String vid,
                                                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
@@ -138,6 +158,13 @@ public class DataController {
         return dataService.getLightDataByVid(vid, startTime, endTime);
     }
 
+    /**
+ * 导出数据功能
+ * 
+ * @return ApiResponse<String> 数据导出结果响应对象
+ * @author donghuang
+ * @since 2026
+ */
     @GetMapping("/export")
     public ApiResponse<String> exportData() {
         return ApiResponse.success("数据导出功能");

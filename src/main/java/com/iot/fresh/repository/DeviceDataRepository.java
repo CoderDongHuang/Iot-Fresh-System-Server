@@ -20,4 +20,6 @@ public interface DeviceDataRepository extends JpaRepository<DeviceData, Long> {
                                           @Param("endTime") LocalDateTime endTime);
     
     List<DeviceData> findByVidOrderByCreatedAtDesc(String vid, Pageable pageable);
+    
+    DeviceData findTopByVidOrderByCreatedAtDesc(String vid);
 }
