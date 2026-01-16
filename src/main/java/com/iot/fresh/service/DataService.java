@@ -74,4 +74,27 @@ public interface DataService {
      * @return DeviceData 最新设备数据实体
      */
     DeviceData getLatestDeviceData(String vid);
+    
+    /**
+     * 分页获取设备历史数据
+     * 
+     * @param vid 设备唯一标识符
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return ApiResponse<PaginatedResponse<DeviceDataDto>> 分页历史数据响应对象
+     */
+    ApiResponse<com.iot.fresh.dto.PaginatedResponse<DeviceDataDto>> getDeviceHistoryDataWithPagination(
+            String vid, String dataType, LocalDateTime startTime, LocalDateTime endTime, Integer pageNum, Integer pageSize);
+    
+    /**
+     * 获取设备数据统计信息
+     * 
+     * @param vid 设备唯一标识符（可选）
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return Map<String, Object> 统计数据
+     */
+    Map<String, Object> getDeviceDataStatistics(String vid, LocalDateTime startTime, LocalDateTime endTime);
 }
