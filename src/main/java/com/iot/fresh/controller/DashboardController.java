@@ -2,6 +2,7 @@ package com.iot.fresh.controller;
 
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.service.DataService;
+import com.iot.fresh.service.DashboardService;
 import com.iot.fresh.service.DeviceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,6 +29,9 @@ public class DashboardController {
 
     @Autowired
     private DeviceService deviceService;
+    
+    @Autowired
+    private DashboardService dashboardService;
 
     /**
      * 数据统计接口
@@ -114,8 +118,7 @@ public class DashboardController {
                                                                        LocalDateTime startTime, LocalDateTime endTime) {
         try {
             Map<String, Object> statistics = dataService.getDeviceDataStatistics(vid, startTime, endTime);
-            // 根据statType过滤结果（如果需要特定类型的统计）
-            return ApiResponse.success(filterStatisticsByType(statistics, statType));
+            return ApiResponse.success(statistics);
         } catch (Exception e) {
             e.printStackTrace();
             return ApiResponse.error("获取单个设备统计数据失败: " + e.getMessage());
@@ -130,8 +133,7 @@ public class DashboardController {
         try {
             // 传递null作为vid表示查询所有设备
             Map<String, Object> statistics = dataService.getDeviceDataStatistics(null, startTime, endTime);
-            // 根据statType过滤结果（如果需要特定类型的统计）
-            return ApiResponse.success(filterStatisticsByType(statistics, statType));
+            return ApiResponse.success(statistics);
         } catch (Exception e) {
             e.printStackTrace();
             return ApiResponse.error("获取所有设备统计数据失败: " + e.getMessage());
@@ -139,11 +141,55 @@ public class DashboardController {
     }
     
     /**
-     * 根据统计类型过滤统计结果
+     * 仪表盘统计信息接口
+     * 
+     * 路径: GET /api/dashboard/statistics
+     * 
+     * 返回格式:
+     * {
+     *   "code": 200,
+     *   "msg": "success",
+     *   "data": {
+     *     "onlineDevices": 15,
+     *     "totalDevices": 50,
+     *     "todayData": 1200,
+     *     "dataGrowth": 12.5,
+     *     "unresolvedAlarms": 3,
+     *     "todayAlarms": 8,
+     *     "alarmCount": 25,
+     *     "alarmTrend": 2,
+     *     "systemStatus": "normal",
+     *     "cpuUsage": 45.2,
+     *     "deviceStatusDistribution": {
+     *       "online": 15,
+     *       "offline": 30,
+     *       "fault": 3,
+     *       "maintenance": 2
+     *     },
+     *     "recentAlarms": [
+     *       {
+     *         "id": 1,
+     *         "deviceName": "设备A",
+     *         "alarmType": "温度过高",
+     *         "alarmLevel": "high",
+     *         "timestamp": "2023-12-01 10:30:45",
+     *         "status": "pending"
+     *       }
+     *     ]
+     *   }
+     * }
+     * 
+     * @return ApiResponse<Map<String, Object>> 包含仪表盘统计信息的响应对象
+     * @author donghuang
+     * @since 2026
      */
-    private Map<String, Object> filterStatisticsByType(Map<String, Object> statistics, String statType) {
-        // 目前返回完整统计，可根据statType进一步过滤
-        // temperature, humidity, light, comprehensive
-        return statistics;
+    @GetMapping("/statistics")
+    public ApiResponse<Map<String, Object>> getStatistics() {
+        try {
+            return dashboardService.getStatistics();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResponse.error("获取仪表盘统计信息失败: " + e.getMessage());
+        }
     }
 }

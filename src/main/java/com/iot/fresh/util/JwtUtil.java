@@ -80,4 +80,14 @@ public class JwtUtil {
             return null;
         }
     }
+    
+    // 从请求中提取JWT token
+    public String getTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        final String requestTokenHeader = request.getHeader("Authorization");
+
+        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+            return requestTokenHeader.substring(7);
+        }
+        return null;
+    }
 }

@@ -26,14 +26,18 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/ws/**").permitAll()  // WebSocket路径
-                .requestMatchers("/websocket/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/error").permitAll()  // 允许错误页面访问
-                .anyRequest().authenticated()
-            )
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/ws/**").permitAll()  // WebSocket路径
+                    .requestMatchers("/websocket/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll()
+                    .requestMatchers("/api/dashboard/**").permitAll()  // 仪表盘API公开访问
+                    .requestMatchers("/api/device/history-data").permitAll()  // 历史数据API公开访问
+                    .requestMatchers("/api/user/**").permitAll()  // 用户API公开访问
+                    .requestMatchers("/api/system/**").permitAll()  // 系统设置API公开访问
+                    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                    .requestMatchers("/error").permitAll()  // 允许错误页面访问
+                    .anyRequest().authenticated()
+                )
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);
         

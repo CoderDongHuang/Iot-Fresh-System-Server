@@ -24,9 +24,17 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private String realName;
+
     private String email;
 
     private String phone;
+
+    private String department;
+
+    private String position;
+
+    private String avatar;
 
     @Column(name = "role", nullable = false)
     private String role = "USER"; // USER, ADMIN, OPERATOR, OBSERVER

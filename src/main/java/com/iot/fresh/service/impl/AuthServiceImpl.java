@@ -72,8 +72,12 @@ public class AuthServiceImpl implements AuthService {
             UserDto userDto = new UserDto();
             userDto.setId(user.getId());
             userDto.setUsername(user.getUsername());
+            userDto.setRealName(user.getRealName());
             userDto.setEmail(user.getEmail());
             userDto.setPhone(user.getPhone());
+            userDto.setDepartment(user.getDepartment());
+            userDto.setPosition(user.getPosition());
+            userDto.setAvatar(user.getAvatar());
             userDto.setRole(user.getRole());
             // 设置角色列表，将单个角色转换为列表
             userDto.setRoles(List.of(user.getRole()));
