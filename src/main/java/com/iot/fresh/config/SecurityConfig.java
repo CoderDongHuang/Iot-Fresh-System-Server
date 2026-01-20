@@ -32,7 +32,11 @@ public class SecurityConfig {
                     .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/dashboard/**").permitAll()  // 仪表盘API公开访问
                     .requestMatchers("/api/device/history-data").permitAll()  // 历史数据API公开访问
-                    .requestMatchers("/api/user/**").permitAll()  // 用户API公开访问
+                    .requestMatchers("/api/user/profile").authenticated()  // 需要认证
+                    .requestMatchers("/api/user/avatar").authenticated()   // 需要认证
+                    .requestMatchers("/api/user/upload-avatar").authenticated() // 需要认证
+                    .requestMatchers("/api/user/password").authenticated() // 需要认证
+                    .requestMatchers("/api/user/**").permitAll()  // 其他用户API公开访问
                     .requestMatchers("/api/system/**").permitAll()  // 系统设置API公开访问
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/error").permitAll()  // 允许错误页面访问

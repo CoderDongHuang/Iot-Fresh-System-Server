@@ -120,6 +120,14 @@ public class UserController {
             }
             
             String username = jwtUtil.getUsernameFromToken(token);
+            System.out.println("=== 接收到更新用户资料请求 ===");
+            System.out.println("当前登录用户: " + username);
+            System.out.println("请求中的用户名: " + userDto.getUsername());
+            System.out.println("请求中的真实姓名: " + userDto.getRealName());
+            System.out.println("请求中的邮箱: " + userDto.getEmail());
+            System.out.println("请求中的电话: " + userDto.getPhone());
+            System.out.println("请求中的头像URL: " + userDto.getAvatar());
+            
             // 确保只能更新自己的信息
             if (!username.equals(userDto.getUsername())) {
                 return ApiResponse.error("无权更新他人信息");
@@ -127,144 +135,22 @@ public class UserController {
             
             boolean success = userService.updateUser(userDto);
             if (success) {
+                System.out.println("用户信息更新成功: " + username);
                 return ApiResponse.success("用户信息更新成功");
             } else {
+                System.out.println("用户信息更新失败: " + username);
                 return ApiResponse.error("用户信息更新失败");
             }
         } catch (Exception e) {
+            System.out.println("更新用户信息异常: " + e.getMessage());
             e.printStackTrace();
             return ApiResponse.error("更新用户信息失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 上传头像接口
-     * 
-     * 路径: POST /api/user/avatar 和 POST /api/user/upload-avatar
-     * 
-     * 请求: multipart/form-data 格式上传文件
-     * 
-     * 返回格式:
-     * {
-     *   "code": 200,
-     *   "msg": "头像上传成功",
-     *   "data": {
-     *     "avatarUrl": "https://example.com/new-avatar.jpg"
-     *   }
-     * }
-     * 
-     * @param request HTTP请求对象
-     * @param file 上传的头像文件
-     * @return ApiResponse<Map<String, Object>> 包含头像URL的响应对象
-     * @author donghuang
-     * @since 2026
-     */
-    @PostMapping("/avatar")
-    public ApiResponse<Map<String, Object>> uploadAvatar(HttpServletRequest request, @RequestParam("avatar") MultipartFile file) {
-        try {
-            String token = jwtUtil.getTokenFromRequest(request);
-            if (token == null) {
-                return ApiResponse.error("未提供认证令牌");
-            }
-            
-            String username = jwtUtil.getUsernameFromToken(token);
-            System.out.println("正在为用户 " + username + " 上传头像");
-            
-            // 验证文件是否存在
-            if (file.isEmpty()) {
-                return ApiResponse.error("请选择要上传的文件");
-            }
-            
-            // 验证文件类型
-            String contentType = file.getContentType();
-            System.out.println("上传文件类型: " + contentType);
-            if (contentType == null || !contentType.startsWith("image/")) {
-                return ApiResponse.error("只支持图片格式文件");
-            }
-            
-            // 限制文件大小 (例如最大5MB)
-            long maxSize = 5 * 1024 * 1024;
-            if (file.getSize() > maxSize) {
-                return ApiResponse.error("文件大小不能超过5MB");
-            }
-            
-            // 创建上传目录
-            String uploadDir = System.getProperty("user.home") + "/uploads/avatars/";
-            File directory = new File(uploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-            
-            // 生成唯一的文件名
-            String originalFilename = file.getOriginalFilename();
-            String fileExtension = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String uniqueFilename = username + "_" + System.currentTimeMillis() + "_" + 
-                                   Math.abs(UUID.randomUUID().toString().hashCode() % 10000) + fileExtension;
-            
-            // 保存文件
-            Path filePath = Paths.get(uploadDir + uniqueFilename);
-            Files.write(filePath, file.getBytes());
-            
-            // 构建返回的头像URL（相对于应用根路径）
-            String avatarUrl = "/uploads/avatars/" + uniqueFilename;
-            System.out.println("头像URL: " + avatarUrl);
-            
-            // 更新用户的头像信息到数据库
-            UserDto userDto = userService.getUserByUsername(username);
-            if (userDto != null) {
-                System.out.println("原始头像URL: " + userDto.getAvatar());
-                userDto.setAvatar(avatarUrl);
-                boolean updated = userService.updateUser(userDto);
-                System.out.println("数据库更新结果: " + updated);
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("avatarUrl", avatarUrl);
-            result.put("filename", uniqueFilename);
-            result.put("size", file.getSize());
-            
-            System.out.println("头像上传成功: " + avatarUrl);
-            return ApiResponse.success("头像上传成功", result);
-        } catch (IOException e) {
-            System.out.println("文件上传失败: " + e.getMessage());
-            e.printStackTrace();
-            return ApiResponse.error("文件上传失败: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("头像上传失败: " + e.getMessage());
-            e.printStackTrace();
-            return ApiResponse.error("头像上传失败: " + e.getMessage());
-        }
-    }
 
-    /**
-     * 上传头像接口（兼容路径）
-     * 
-     * 路径: POST /api/user/upload-avatar
-     * 
-     * 请求: multipart/form-data 格式上传文件
-     * 
-     * 返回格式:
-     * {
-     *   "code": 200,
-     *   "msg": "头像上传成功",
-     *   "data": {
-     *     "avatarUrl": "https://example.com/new-avatar.jpg"
-     *   }
-     * }
-     * 
-     * @param request HTTP请求对象
-     * @param file 上传的头像文件
-     * @return ApiResponse<Map<String, Object>> 包含头像URL的响应对象
-     * @author donghuang
-     * @since 2026
-     */
-    @PostMapping("/upload-avatar")
-    public ApiResponse<Map<String, Object>> uploadAvatarCompatible(HttpServletRequest request, @RequestParam("avatar") MultipartFile file) {
-        return uploadAvatar(request, file);
-    }
+
+
 
     /**
      * 修改密码接口
