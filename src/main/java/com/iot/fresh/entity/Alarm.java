@@ -48,23 +48,7 @@ public class Alarm {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    // 添加缺失的setter方法（用于手动设置时间戳）
-    @Column(name = "created_at")
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.createdAt = timestamp;
-    }
-    
-    public LocalDateTime getTimestamp() {
-        return this.createdAt;
-    }
-    
-    @Column(name = "resolved_at")
-    public void setHandledAt(LocalDateTime handledAt) {
-        this.resolvedAt = handledAt;
-    }
-    
-    public LocalDateTime getHandledAt() {
-        return this.resolvedAt;
-    }
+
+    @Column(name = "extra_info", columnDefinition = "TEXT")
+    private String extraInfo; // 附加信息
 }

@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.dto.PaginatedResponse;
 import com.iot.fresh.entity.Alarm;
+import com.iot.fresh.entity.AlarmHistory;
 import com.iot.fresh.entity.Device;
+import com.iot.fresh.repository.AlarmHistoryRepository;
 import com.iot.fresh.repository.AlarmRepository;
 import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.AlarmService;
@@ -18,11 +20,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AlarmServiceImpl implements AlarmService {
@@ -32,11 +37,14 @@ public class AlarmServiceImpl implements AlarmService {
     
     @Autowired
     private DeviceRepository deviceRepository;
+    
+    @Autowired
+    private AlarmHistoryRepository alarmHistoryRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public ApiResponse<PaginatedResponse<Map<String, Object>>> getAlarmList(Integer pageNum, Integer pageSize, String level, String status, String keyword) {
+    public ApiResponse<PaginatedResponse<Map<String, Object>>> getAlarmList(Integer pageNum, Integer pageSize, String level, String status, String keyword, String startDate, String endDate) {
         Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         Page<Alarm> alarmPage;
@@ -44,9 +52,24 @@ public class AlarmServiceImpl implements AlarmService {
         // 转换API状态值到数据库状态值
         String dbStatus = convertApiStatusToDbStatus(status);
         
+        // 处理日期筛选
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+        
+        if (startDate != null && !startDate.isEmpty()) {
+            startDateTime = LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE).atStartOfDay();
+        }
+        
+        if (endDate != null && !endDate.isEmpty()) {
+            endDateTime = LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE).atTime(23, 59, 59);
+        }
+        
         if (keyword != null && !keyword.isEmpty()) {
             // 按关键词搜索（设备名称或报警内容）
-            if (level != null && !level.isEmpty() && status != null && !status.isEmpty()) {
+            if (level != null && !level.isEmpty() && status != null && !status.isEmpty() && startDateTime != null && endDateTime != null) {
+                // 查找消息或设备名包含关键词且级别、状态和时间范围匹配的报警
+                alarmPage = alarmRepository.findByMessageContainingOrDeviceNameContainingAndAlarmLevelAndStatusAndCreatedAtBetween(keyword, keyword, level, dbStatus, startDateTime, endDateTime, pageable);
+            } else if (level != null && !level.isEmpty() && status != null && !status.isEmpty()) {
                 // 查找消息或设备名包含关键词且级别和状态匹配的报警
                 alarmPage = alarmRepository.findByMessageContainingOrDeviceNameContainingAndAlarmLevelAndStatus(keyword, keyword, level, dbStatus, pageable);
             } else if (level != null && !level.isEmpty()) {
@@ -54,17 +77,24 @@ public class AlarmServiceImpl implements AlarmService {
             } else if (status != null && !status.isEmpty()) {
                 // 查找消息或设备名包含关键词且状态匹配的报警
                 alarmPage = alarmRepository.findByMessageContainingOrDeviceNameContainingAndStatus(keyword, keyword, dbStatus, pageable);
+            } else if (startDateTime != null && endDateTime != null) {
+                // 查找消息或设备名包含关键词且时间范围匹配的报警
+                alarmPage = alarmRepository.findByMessageContainingOrDeviceNameContainingAndCreatedAtBetween(keyword, keyword, startDateTime, endDateTime, pageable);
             } else {
                 alarmPage = alarmRepository.findByMessageContainingOrDeviceNameContaining(keyword, keyword, pageable);
             }
         } else {
             // 不按关键词搜索
-            if (level != null && !level.isEmpty() && status != null && !status.isEmpty()) {
+            if (level != null && !level.isEmpty() && status != null && !status.isEmpty() && startDateTime != null && endDateTime != null) {
+                alarmPage = alarmRepository.findByAlarmLevelAndStatusAndCreatedAtBetween(level, dbStatus, startDateTime, endDateTime, pageable);
+            } else if (level != null && !level.isEmpty() && status != null && !status.isEmpty()) {
                 alarmPage = alarmRepository.findByAlarmLevelAndStatus(level, dbStatus, pageable);
             } else if (level != null && !level.isEmpty()) {
                 alarmPage = alarmRepository.findByAlarmLevel(level, pageable);
             } else if (status != null && !status.isEmpty()) {
                 alarmPage = alarmRepository.findByStatus(dbStatus, pageable);
+            } else if (startDateTime != null && endDateTime != null) {
+                alarmPage = alarmRepository.findByCreatedAtBetween(startDateTime, endDateTime, pageable);
             } else {
                 alarmPage = alarmRepository.findAll(pageable);
             }
@@ -89,12 +119,10 @@ public class AlarmServiceImpl implements AlarmService {
         }
         
         switch (apiStatus.toLowerCase()) {
-            case "pending":
+            case "待处理":
                 return "active"; // API的pending对应数据库的active
-            case "resolved":
+            case "已处理":
                 return "resolved";
-            case "ignored":
-                return "ignored";
             default:
                 return apiStatus; // 如果不是标准状态，直接返回原值
         }
@@ -119,24 +147,7 @@ public class AlarmServiceImpl implements AlarmService {
         return ApiResponse.success("报警已处理");
     }
 
-    @Override
-    public ApiResponse<String> ignoreAlarm(Long alarmId) {
-        Optional<Alarm> alarmOpt = alarmRepository.findById(alarmId);
-        if (!alarmOpt.isPresent()) {
-            return ApiResponse.error("报警不存在");
-        }
-        
-        Alarm alarm = alarmOpt.get();
-        alarm.setStatus("ignored"); // 设置为已忽略
-        alarm.setUpdatedAt(LocalDateTime.now());
-        alarm.setResolvedAt(LocalDateTime.now()); // 设置解决时间为当前时间
-        alarmRepository.save(alarm);
-        
-        // 推送更新后的报警统计数据
-        pushUpdatedStatistics();
-        
-        return ApiResponse.success("报警已忽略");
-    }
+
     
     // 推送更新后的报警统计数据到WebSocket客户端
     private void pushUpdatedStatistics() {
@@ -198,33 +209,33 @@ public class AlarmServiceImpl implements AlarmService {
         statistics.put("resolved", resolved);
         statistics.put("ignored", ignored);
         
-        // 按级别统计
-        long critical = alarmRepository.countByAlarmLevel("critical");
-        long high = alarmRepository.countByAlarmLevel("high");
-        long medium = alarmRepository.countByAlarmLevel("medium");
-        long low = alarmRepository.countByAlarmLevel("low");
+        // 按前端三个级别统计：紧急、重要、一般
+        // 紧急级别：包含后端的critical和high
+        long urgent = alarmRepository.countByAlarmLevel("critical") + alarmRepository.countByAlarmLevel("high");
+        // 重要级别：包含后端的medium
+        long important = alarmRepository.countByAlarmLevel("medium");
+        // 一般级别：包含后端的low
+        long normal = alarmRepository.countByAlarmLevel("low");
         
-        statistics.put("critical", critical);
-        statistics.put("high", high);
-        statistics.put("medium", medium);
-        statistics.put("low", low);
+        statistics.put("urgent", urgent);
+        statistics.put("important", important);
+        statistics.put("normal", normal);
         
-        // 新增：按级别和状态统计
-        statistics.put("criticalPending", alarmRepository.countByAlarmLevelAndStatus("critical", "active"));
-        statistics.put("criticalResolved", alarmRepository.countByAlarmLevelAndStatus("critical", "resolved"));
-        statistics.put("criticalIgnored", alarmRepository.countByAlarmLevelAndStatus("critical", "ignored"));
+        // 新增：按前端级别和状态统计
+        statistics.put("urgentPending", alarmRepository.countByAlarmLevelAndStatus("critical", "active") + 
+                                        alarmRepository.countByAlarmLevelAndStatus("high", "active"));
+        statistics.put("urgentResolved", alarmRepository.countByAlarmLevelAndStatus("critical", "resolved") + 
+                                         alarmRepository.countByAlarmLevelAndStatus("high", "resolved"));
+        statistics.put("urgentIgnored", alarmRepository.countByAlarmLevelAndStatus("critical", "ignored") + 
+                                        alarmRepository.countByAlarmLevelAndStatus("high", "ignored"));
         
-        statistics.put("highPending", alarmRepository.countByAlarmLevelAndStatus("high", "active"));
-        statistics.put("highResolved", alarmRepository.countByAlarmLevelAndStatus("high", "resolved"));
-        statistics.put("highIgnored", alarmRepository.countByAlarmLevelAndStatus("high", "ignored"));
+        statistics.put("importantPending", alarmRepository.countByAlarmLevelAndStatus("medium", "active"));
+        statistics.put("importantResolved", alarmRepository.countByAlarmLevelAndStatus("medium", "resolved"));
+        statistics.put("importantIgnored", alarmRepository.countByAlarmLevelAndStatus("medium", "ignored"));
         
-        statistics.put("mediumPending", alarmRepository.countByAlarmLevelAndStatus("medium", "active"));
-        statistics.put("mediumResolved", alarmRepository.countByAlarmLevelAndStatus("medium", "resolved"));
-        statistics.put("mediumIgnored", alarmRepository.countByAlarmLevelAndStatus("medium", "ignored"));
-        
-        statistics.put("lowPending", alarmRepository.countByAlarmLevelAndStatus("low", "active"));
-        statistics.put("lowResolved", alarmRepository.countByAlarmLevelAndStatus("low", "resolved"));
-        statistics.put("lowIgnored", alarmRepository.countByAlarmLevelAndStatus("low", "ignored"));
+        statistics.put("normalPending", alarmRepository.countByAlarmLevelAndStatus("low", "active"));
+        statistics.put("normalResolved", alarmRepository.countByAlarmLevelAndStatus("low", "resolved"));
+        statistics.put("normalIgnored", alarmRepository.countByAlarmLevelAndStatus("low", "ignored"));
         
         return ApiResponse.success(statistics);
     }
@@ -234,15 +245,20 @@ public class AlarmServiceImpl implements AlarmService {
         alarmMap.put("id", alarm.getId());
         alarmMap.put("deviceId", alarm.getVid()); // 使用VID作为deviceId
         alarmMap.put("deviceName", alarm.getDeviceName());
-        alarmMap.put("alarmLevel", alarm.getAlarmLevel());
+        
+        // 映射报警级别：将后端级别映射到前端三个级别
+        String frontendLevel = convertToFrontendLevel(alarm.getAlarmLevel());
+        alarmMap.put("level", frontendLevel); // 前端期望的字段名是level，不是alarmLevel
+        
         alarmMap.put("alarmType", alarm.getAlarmType());
         alarmMap.put("alarmContent", alarm.getMessage()); // 使用message字段作为报警内容
+        
         // 映射状态值以匹配API规范
         String status = alarm.getStatus();
         if ("active".equals(status)) {
-            status = "pending";
-        } else if ("closed".equals(status)) {
-            status = "resolved"; // 如果数据库中有"closed"状态，映射为"resolved"
+            status = "待处理";
+        } else if ("resolved".equals(status)) {
+            status = "已处理";
         }
         alarmMap.put("status", status);
         alarmMap.put("timestamp", alarm.getCreatedAt() != null ? alarm.getCreatedAt().toString() : null); // 使用ISO 8601格式
@@ -252,18 +268,47 @@ public class AlarmServiceImpl implements AlarmService {
         return alarmMap;
     }
     
+    /**
+     * 将后端报警级别映射到前端三个级别
+     * @param backendLevel 后端级别 (high, medium, low)
+     * @return 前端级别 (high, medium, low) - 前端会根据这些值显示对应的颜色
+     */
+    private String convertToFrontendLevel(String backendLevel) {
+        if (backendLevel == null) {
+            return "low";
+        }
+        
+        switch (backendLevel.toLowerCase()) {
+            case "high":
+                return "high";
+            case "medium":
+                return "medium";
+            case "low":
+                return "low";
+            default:
+                return "low";
+        }
+    }
+    
     private Map<String, Object> convertToAlarmDetailMap(Alarm alarm) {
         Map<String, Object> alarmDetail = new HashMap<>();
         alarmDetail.put("id", alarm.getId());
         alarmDetail.put("deviceId", alarm.getVid()); // 使用VID作为deviceId
         alarmDetail.put("deviceName", alarm.getDeviceName());
-        alarmDetail.put("alarmLevel", alarm.getAlarmLevel());
+        
+        // 映射报警级别：将后端级别映射到前端三个级别
+        String frontendLevel = convertToFrontendLevel(alarm.getAlarmLevel());
+        alarmDetail.put("level", frontendLevel); // 前端期望的字段名是level，不是alarmLevel
+        
         alarmDetail.put("alarmType", alarm.getAlarmType());
         alarmDetail.put("alarmContent", alarm.getMessage()); // 使用message字段作为报警内容
+        
         // 映射状态值以匹配API规范
         String status = alarm.getStatus();
         if ("active".equals(status)) {
-            status = "pending";
+            status = "待处理";
+        } else if ("resolved".equals(status)) {
+            status = "已处理";
         }
         alarmDetail.put("status", status);
         alarmDetail.put("timestamp", alarm.getCreatedAt().toString()); // 使用ISO 8601格式
@@ -326,5 +371,72 @@ public class AlarmServiceImpl implements AlarmService {
         
         // 推送更新后的报警统计数据
         pushUpdatedStatistics();
+    }
+
+    @Override
+    public ApiResponse<String> closeAlarm(Long alarmId) {
+        Optional<Alarm> alarmOpt = alarmRepository.findById(alarmId);
+        if (!alarmOpt.isPresent()) {
+            return ApiResponse.error("报警不存在");
+        }
+        
+        Alarm alarm = alarmOpt.get();
+        alarm.setStatus("closed"); // 设置为已关闭
+        alarm.setUpdatedAt(LocalDateTime.now());
+        alarm.setResolvedAt(LocalDateTime.now());
+        alarmRepository.save(alarm);
+        
+        // 添加处理记录
+        addAlarmHistory(alarmId, "close", "system", "报警已关闭");
+        
+        // 推送更新后的报警统计数据
+        pushUpdatedStatistics();
+        
+        return ApiResponse.success("报警已关闭");
+    }
+
+    @Override
+    public ApiResponse<Map<String, Object>> getAlarmHistory(Long alarmId) {
+        Optional<Alarm> alarmOpt = alarmRepository.findById(alarmId);
+        if (!alarmOpt.isPresent()) {
+            return ApiResponse.error("报警不存在");
+        }
+        
+        List<AlarmHistory> historyList = alarmHistoryRepository.findByAlarmIdOrderByTimestampDesc(alarmId);
+        
+        List<Map<String, Object>> historyData = historyList.stream().map(history -> {
+            Map<String, Object> historyMap = new HashMap<>();
+            historyMap.put("id", history.getId());
+            historyMap.put("alarmId", history.getAlarmId());
+            historyMap.put("action", history.getAction());
+            historyMap.put("operator", history.getOperator());
+            historyMap.put("remark", history.getRemark());
+            historyMap.put("timestamp", history.getTimestamp().toString());
+            return historyMap;
+        }).collect(Collectors.toList());
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("history", historyData);
+        
+        return ApiResponse.success(result);
+    }
+
+    @Override
+    public ApiResponse<String> addAlarmHistory(Long alarmId, String action, String operator, String remark) {
+        Optional<Alarm> alarmOpt = alarmRepository.findById(alarmId);
+        if (!alarmOpt.isPresent()) {
+            return ApiResponse.error("报警不存在");
+        }
+        
+        AlarmHistory history = new AlarmHistory();
+        history.setAlarmId(alarmId);
+        history.setAction(action);
+        history.setOperator(operator);
+        history.setRemark(remark);
+        history.setTimestamp(LocalDateTime.now());
+        
+        alarmHistoryRepository.save(history);
+        
+        return ApiResponse.success("处理记录添加成功");
     }
 }

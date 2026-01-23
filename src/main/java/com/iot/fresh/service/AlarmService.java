@@ -22,9 +22,11 @@ public interface AlarmService {
      * @param level 报警级别
      * @param status 报警状态
      * @param keyword 关键词搜索
+     * @param startDate 开始日期
+     * @param endDate 结束日期
      * @return ApiResponse<PaginatedResponse<Map<String, Object>>> 报警列表响应对象
      */
-    ApiResponse<PaginatedResponse<Map<String, Object>>> getAlarmList(Integer pageNum, Integer pageSize, String level, String status, String keyword);
+    ApiResponse<PaginatedResponse<Map<String, Object>>> getAlarmList(Integer pageNum, Integer pageSize, String level, String status, String keyword, String startDate, String endDate);
     
     /**
      * 解决报警
@@ -35,12 +37,12 @@ public interface AlarmService {
     ApiResponse<String> resolveAlarm(Long alarmId);
     
     /**
-     * 忽略报警
+     * 关闭报警
      * 
      * @param alarmId 报警ID
      * @return ApiResponse<String> 操作结果响应对象
      */
-    ApiResponse<String> ignoreAlarm(Long alarmId);
+    ApiResponse<String> closeAlarm(Long alarmId);
     
     /**
      * 清除所有报警
@@ -63,6 +65,25 @@ public interface AlarmService {
      * @return ApiResponse<Map<String, Object>> 报警统计响应对象
      */
     ApiResponse<Map<String, Object>> getAlarmStatistics();
+    
+    /**
+     * 获取报警处理记录
+     * 
+     * @param alarmId 报警ID
+     * @return ApiResponse<Map<String, Object>> 处理记录响应对象
+     */
+    ApiResponse<Map<String, Object>> getAlarmHistory(Long alarmId);
+    
+    /**
+     * 添加报警处理记录
+     * 
+     * @param alarmId 报警ID
+     * @param action 操作类型
+     * @param operator 操作人
+     * @param remark 备注
+     * @return ApiResponse<String> 操作结果响应对象
+     */
+    ApiResponse<String> addAlarmHistory(Long alarmId, String action, String operator, String remark);
     
     /**
      * 处理报警数据

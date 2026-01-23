@@ -55,4 +55,16 @@ public interface AlarmRepository extends JpaRepository<Alarm, Long> {
     // 按级别和状态统计
     @Query("SELECT COUNT(a) FROM Alarm a WHERE a.alarmLevel = :level AND a.status = :status")
     Long countByAlarmLevelAndStatus(String level, String status);
+    
+    // 按时间范围查询
+    Page<Alarm> findByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    // 按报警内容或设备名模糊查询且时间范围匹配
+    Page<Alarm> findByMessageContainingOrDeviceNameContainingAndCreatedAtBetween(String message, String deviceName, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    // 按报警级别、状态和时间范围查询
+    Page<Alarm> findByAlarmLevelAndStatusAndCreatedAtBetween(String alarmLevel, String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    // 按报警内容或设备名模糊查询且级别、状态和时间范围匹配
+    Page<Alarm> findByMessageContainingOrDeviceNameContainingAndAlarmLevelAndStatusAndCreatedAtBetween(String message, String deviceName, String alarmLevel, String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
 }
