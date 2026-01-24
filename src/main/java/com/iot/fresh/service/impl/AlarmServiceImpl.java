@@ -261,11 +261,24 @@ public class AlarmServiceImpl implements AlarmService {
             status = "已处理";
         }
         alarmMap.put("status", status);
-        alarmMap.put("timestamp", alarm.getCreatedAt() != null ? alarm.getCreatedAt().toString() : null); // 使用ISO 8601格式
-        alarmMap.put("resolvedTime", alarm.getResolvedAt() != null ? alarm.getResolvedAt().toString() : null);
+        alarmMap.put("timestamp", alarm.getCreatedAt() != null ? formatDateTime(alarm.getCreatedAt()) : null);
+        alarmMap.put("resolvedTime", alarm.getResolvedAt() != null ? formatDateTime(alarm.getResolvedAt()) : null);
         alarmMap.put("resolvedBy", null); // 暂时没有处理人字段
         
         return alarmMap;
+    }
+    
+    /**
+     * 格式化日期时间，去除ISO 8601格式中的T字符
+     * @param dateTime 日期时间对象
+     * @return 格式化的日期时间字符串，格式：yyyy-MM-dd HH:mm:ss
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return dateTime.format(formatter);
     }
     
     /**
@@ -311,8 +324,8 @@ public class AlarmServiceImpl implements AlarmService {
             status = "已处理";
         }
         alarmDetail.put("status", status);
-        alarmDetail.put("timestamp", alarm.getCreatedAt().toString()); // 使用ISO 8601格式
-        alarmDetail.put("resolvedTime", alarm.getResolvedAt() != null ? alarm.getResolvedAt().toString() : null);
+        alarmDetail.put("timestamp", formatDateTime(alarm.getCreatedAt()));
+        alarmDetail.put("resolvedTime", alarm.getResolvedAt() != null ? formatDateTime(alarm.getResolvedAt()) : null);
         alarmDetail.put("resolvedBy", null); // 暂时没有处理人字段
         
         // 添加设备信息
@@ -411,7 +424,7 @@ public class AlarmServiceImpl implements AlarmService {
             historyMap.put("action", history.getAction());
             historyMap.put("operator", history.getOperator());
             historyMap.put("remark", history.getRemark());
-            historyMap.put("timestamp", history.getTimestamp().toString());
+            historyMap.put("timestamp", formatDateTime(history.getTimestamp()));
             return historyMap;
         }).collect(Collectors.toList());
         
