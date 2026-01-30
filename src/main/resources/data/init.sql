@@ -380,3 +380,27 @@ INSERT INTO alarm_history (alarm_id, action, operator, remark, timestamp) VALUES
 (59, 'acknowledge', 'operator1', '加工设备润滑异常已确认', DATE_SUB(NOW(), INTERVAL 345 MINUTE)),
 (60, 'create', 'system', '系统自动检测到质检设备采样异常', DATE_SUB(NOW(), INTERVAL 365 MINUTE)),
 (60, 'acknowledge', 'operator2', '质检设备采样异常已确认', DATE_SUB(NOW(), INTERVAL 360 MINUTE));
+
+-- 创建报警通知设置表
+CREATE TABLE IF NOT EXISTS alarm_notification_settings (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    sms_enabled BOOLEAN DEFAULT false,
+    phone_numbers VARCHAR(500),
+    sound_enabled BOOLEAN DEFAULT true,
+    vibration_enabled BOOLEAN DEFAULT true,
+    popup_enabled BOOLEAN DEFAULT true,
+    notify_levels VARCHAR(100) DEFAULT 'high,medium',
+    push_frequency VARCHAR(20) DEFAULT 'immediate',
+    quiet_hours_start VARCHAR(5) DEFAULT '22:00',
+    quiet_hours_end VARCHAR(5) DEFAULT '07:00',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_id (user_id)
+);
+
+-- 插入默认通知设置
+INSERT INTO alarm_notification_settings (user_id, sms_enabled, phone_numbers, sound_enabled, vibration_enabled, popup_enabled, notify_levels, push_frequency, quiet_hours_start, quiet_hours_end) VALUES
+(1, true, '13800138000,13900139000', true, true, true, 'high,medium', 'immediate', '22:00', '07:00'),
+(2, true, '13800138001', true, true, true, 'high', 'immediate', '23:00', '08:00'),
+(3, false, '13800138002', true, false, true, 'high,medium,low', 'batch', '00:00', '06:00');

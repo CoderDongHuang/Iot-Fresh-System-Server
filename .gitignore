@@ -28,6 +28,21 @@ log/
 .DS_Store?
 ._*
 .Spotlight-V100
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Application properties with sensitive data
+application-prod.yml
+application-dev.yml
+
+# IDE specific
+.vscode/
+*.swp
+*.swo
 .Trashes
 ehthumbs.db
 Thumbs.db
