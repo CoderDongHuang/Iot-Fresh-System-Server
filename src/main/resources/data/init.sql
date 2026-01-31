@@ -404,3 +404,7 @@ INSERT INTO alarm_notification_settings (user_id, sms_enabled, phone_numbers, so
 (1, true, '13800138000,13900139000', true, true, true, 'high,medium', 'immediate', '22:00', '07:00'),
 (2, true, '13800138001', true, true, true, 'high', 'immediate', '23:00', '08:00'),
 (3, false, '13800138002', true, false, true, 'high,medium,low', 'batch', '00:00', '06:00');
+
+-- 插入新的测试报警数据（用于信息功能测试）
+INSERT INTO alarms (device_id, vid, device_name, alarm_type, alarm_level, message, status, created_at) VALUES
+(1, 'DEV001', '冷库1号', 'temperature', 'high', '测试报警：设备温度2C超过阈值25°C，请立即处理！', 'active', NOW());

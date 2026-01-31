@@ -11,6 +11,7 @@ import com.iot.fresh.entity.Device;
 import com.iot.fresh.repository.AlarmHistoryRepository;
 import com.iot.fresh.repository.AlarmRepository;
 import com.iot.fresh.repository.DeviceRepository;
+import com.iot.fresh.service.AlarmPushService;
 import com.iot.fresh.service.AlarmService;
 import com.iot.fresh.websocket.WebSocketEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class AlarmServiceImpl implements AlarmService {
     
     @Autowired
     private AlarmHistoryRepository alarmHistoryRepository;
+    
+    @Autowired
+    private AlarmPushService alarmPushService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -359,8 +363,11 @@ public class AlarmServiceImpl implements AlarmService {
             alarm.setDeviceName(device.getDeviceName());
         }
         
-        alarmRepository.save(alarm);
+        Alarm savedAlarm = alarmRepository.save(alarm);
         System.out.println("报警已处理并保存: " + alarm.getMessage());
+        
+        // 推送新报警的详细信息到前端
+        alarmPushService.sendPriorityAlarm(savedAlarm);
         
         // 推送更新后的报警统计数据
         pushUpdatedStatistics();
