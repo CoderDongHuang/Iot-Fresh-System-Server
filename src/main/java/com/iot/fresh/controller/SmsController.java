@@ -1,5 +1,6 @@
 package com.iot.fresh.controller;
 
+import com.iot.fresh.dto.*;
 import com.iot.fresh.entity.*;
 import com.iot.fresh.repository.*;
 import com.iot.fresh.service.impl.SmsNotificationServiceImpl;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,22 +36,21 @@ public class SmsController {
      * 获取短信设置
      */
     @GetMapping("/settings")
-    public ResponseEntity<ResponseData<SmsSettings>> getSettings() {
+    public ResponseEntity<ResponseData<SmsSettingsDto>> getSettings() {
         try {
             // 默认获取管理员用户的设置
             SmsSettings settings = smsSettingsRepository.findByUserId(1L);
+            SmsSettingsDto dto;
+            
             if (settings == null) {
                 // 如果没有设置，返回默认设置
-                settings = new SmsSettings();
-                settings.setUserId(1L);
-                settings.setEnabled(false);
-                settings.setPhoneNumbers("[\"13800138000\"]");
-                settings.setNotifyLevels("[\"high\", \"medium\"]");
-                settings.setQuietHours("[\"22:00\", \"07:00\"]");
-                settings.setPushFrequency("immediate");
+                dto = new SmsSettingsDto();
+            } else {
+                // 将实体转换为DTO
+                dto = SmsSettingsDto.fromEntity(settings);
             }
             
-            return ResponseEntity.ok(ResponseData.success(settings));
+            return ResponseEntity.ok(ResponseData.success(dto));
         } catch (Exception e) {
             log.error("获取短信设置失败: {}", e.getMessage());
             return ResponseEntity.ok(ResponseData.error("获取短信设置失败"));
@@ -60,19 +61,35 @@ public class SmsController {
      * 保存短信设置
      */
     @PostMapping("/settings")
-    public ResponseEntity<ResponseData<Void>> saveSettings(@RequestBody SmsSettingsRequest request) {
+    public ResponseEntity<ResponseData<Void>> saveSettings(@RequestBody SmsSettingsDto request) {
         try {
-            SmsSettings settings = smsSettingsRepository.findByUserId(1L);
-            if (settings == null) {
-                settings = new SmsSettings();
-                settings.setUserId(1L);
+            log.info("收到保存短信设置请求: {}", request);
+            
+            // 验证数据
+            if (request == null) {
+                return ResponseEntity.ok(ResponseData.error("设置数据不能为空"));
             }
             
-            settings.setEnabled(request.getEnabled());
-            settings.setPhoneNumbers(request.getPhoneNumbers());
-            settings.setNotifyLevels(request.getNotifyLevels());
-            settings.setQuietHours(request.getQuietHours());
-            settings.setPushFrequency(request.getPushFrequency());
+            // 设置默认值
+            if (request.getEnabled() == null) {
+                request.setEnabled(false);
+            }
+            if (request.getPhoneNumbers() == null) {
+                request.setPhoneNumbers(Arrays.asList("13800138000"));
+            }
+            if (request.getNotifyLevels() == null) {
+                request.setNotifyLevels(Arrays.asList("high", "medium"));
+            }
+            if (request.getQuietHours() == null) {
+                request.setQuietHours(new String[]{"22:00", "07:00"});
+            }
+            if (request.getPushFrequency() == null) {
+                request.setPushFrequency("immediate");
+            }
+            
+            // 转换为实体并保存
+            SmsSettings settings = request.toEntity();
+            settings.setUserId(1L); // 默认管理员用户
             
             smsSettingsRepository.save(settings);
             
@@ -80,7 +97,7 @@ public class SmsController {
             return ResponseEntity.ok(ResponseData.success());
         } catch (Exception e) {
             log.error("保存短信设置失败: {}", e.getMessage());
-            return ResponseEntity.ok(ResponseData.error("保存短信设置失败"));
+            return ResponseEntity.ok(ResponseData.error("保存短信设置失败: " + e.getMessage()));
         }
     }
     
@@ -176,17 +193,7 @@ public class SmsController {
         }
     }
     
-    /**
-     * 请求数据类
-     */
-    @Data
-    public static class SmsSettingsRequest {
-        private Boolean enabled;
-        private String phoneNumbers;
-        private String notifyLevels;
-        private String quietHours;
-        private String pushFrequency;
-    }
+    // 不再使用SmsSettingsRequest，已使用SmsSettingsDto替代
     
     @Data
     public static class TestSmsRequest {
