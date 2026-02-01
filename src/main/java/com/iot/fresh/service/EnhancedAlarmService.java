@@ -85,17 +85,34 @@ public class EnhancedAlarmService {
     
     private void sendSmsNotification(Alarm alarm, NotificationSettings settings) {
         String template = getTemplateByLevel(alarm.getAlarmLevel());
-        Map<String, Object> variables = createTemplateVariables(alarm);
+        String message = createMessageFromTemplate(template, alarm);
         
         if (settings.getPhoneNumbers() != null && !settings.getPhoneNumbers().isEmpty()) {
             List<String> phoneNumbers = Arrays.asList(settings.getPhoneNumbers().split(","));
-            smsService.sendTemplateSms(phoneNumbers, template, variables);
+            for (String phoneNumber : phoneNumbers) {
+                smsService.sendSms(phoneNumber, message, alarm.getAlarmLevel());
+            }
         }
     }
     
     private String getTemplateByLevel(String level) {
-        Map<String, String> templates = smsService.getDefaultTemplates();
-        return templates.getOrDefault(level, templates.get("medium"));
+        // 简化实现：使用固定模板
+        switch (level.toLowerCase()) {
+            case "high":
+                return "【物联网系统】紧急报警：设备{deviceName}发生{alarmType}，请立即处理！";
+            case "medium":
+                return "【物联网系统】重要报警：设备{deviceName}发生{alarmType}，请及时处理。";
+            case "low":
+                return "【物联网系统】一般报警：设备{deviceName}发生{alarmType}，请关注。";
+            default:
+                return "【物联网系统】报警：设备{deviceName}发生{alarmType}，请处理。";
+        }
+    }
+    
+    private String createMessageFromTemplate(String template, Alarm alarm) {
+        return template
+            .replace("{deviceName}", alarm.getDeviceName() != null ? alarm.getDeviceName() : "未知设备")
+            .replace("{alarmType}", alarm.getAlarmType() != null ? alarm.getAlarmType() : "未知类型");
     }
     
     private Map<String, Object> createTemplateVariables(Alarm alarm) {

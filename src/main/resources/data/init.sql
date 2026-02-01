@@ -399,12 +399,56 @@ CREATE TABLE IF NOT EXISTS alarm_notification_settings (
     UNIQUE KEY uk_user_id (user_id)
 );
 
+-- 创建短信设置表
+CREATE TABLE IF NOT EXISTS sms_settings (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    enabled BOOLEAN DEFAULT FALSE,
+    phone_numbers JSON, -- ["13800138000", "13900139000"]
+    notify_levels JSON, -- ["high", "medium"]
+    quiet_hours JSON, -- ["22:00", "07:00"]
+    push_frequency VARCHAR(20) DEFAULT 'immediate',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 创建短信模板表
+CREATE TABLE IF NOT EXISTS sms_templates (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    template_type VARCHAR(20) NOT NULL, -- high, medium, low
+    template_content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 创建短信发送记录表
+CREATE TABLE IF NOT EXISTS sms_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    alarm_id BIGINT,
+    phone_number VARCHAR(20) NOT NULL,
+    message_content TEXT NOT NULL,
+    template_type VARCHAR(20), -- high, medium, low
+    send_status VARCHAR(20) NOT NULL, -- success, failed
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (alarm_id) REFERENCES alarms(id)
+);
+
+-- 插入默认短信设置
+INSERT INTO sms_settings (user_id, enabled, phone_numbers, notify_levels, quiet_hours, push_frequency) VALUES
+(1, true, '["13800138000", "13900139000"]', '["high", "medium"]', '["22:00", "07:00"]', 'immediate'),
+(2, true, '["13800138001"]', '["high"]', '["23:00", "08:00"]', 'immediate'),
+(3, false, '["13800138002"]', '["high", "medium", "low"]', '["00:00", "06:00"]', 'batch');
+
+-- 插入默认短信模板
+INSERT INTO sms_templates (template_type, template_content) VALUES
+('high', '【物联网生鲜品储运系统】紧急报警！设备：{device}，级别：{level}，内容：{content}，请立即处理！'),
+('medium', '【物联网生鲜品储运系统】重要报警！设备：{device}，内容：{content}，请及时处理。'),
+('low', '【物联网生鲜品储运系统】一般报警！设备：{device}，内容：{content}，请关注。');
+
 -- 插入默认通知设置
 INSERT INTO alarm_notification_settings (user_id, sms_enabled, phone_numbers, sound_enabled, vibration_enabled, popup_enabled, notify_levels, push_frequency, quiet_hours_start, quiet_hours_end) VALUES
 (1, true, '13800138000,13900139000', true, true, true, 'high,medium', 'immediate', '22:00', '07:00'),
 (2, true, '13800138001', true, true, true, 'high', 'immediate', '23:00', '08:00'),
 (3, false, '13800138002', true, false, true, 'high,medium,low', 'batch', '00:00', '06:00');
-
--- 插入新的测试报警数据（用于信息功能测试）
-INSERT INTO alarms (device_id, vid, device_name, alarm_type, alarm_level, message, status, created_at) VALUES
-(1, 'DEV001', '冷库1号', 'temperature', 'high', '测试报警：设备温度2C超过阈值25°C，请立即处理！', 'active', NOW());

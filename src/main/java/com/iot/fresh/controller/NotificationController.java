@@ -23,11 +23,34 @@ public class NotificationController {
     @PostMapping("/sms")
     public ResponseEntity<?> sendSmsNotification(@RequestBody SmsNotifyRequest request) {
         try {
-            smsService.sendTemplateSms(request.getPhoneNumbers(), request.getTemplate(), request.getVariables());
-            return ResponseEntity.ok(ApiResponse.success("短信发送成功"));
+            // 简化实现：发送单条短信
+            if (request.getPhoneNumbers() != null && !request.getPhoneNumbers().isEmpty()) {
+                String phoneNumber = request.getPhoneNumbers().get(0); // 取第一个手机号
+                // 使用模板和变量构建短信内容
+                String message = buildMessageFromTemplate(request.getTemplate(), request.getVariables());
+                smsService.sendSms(phoneNumber, message, "high");
+                return ResponseEntity.ok(ApiResponse.success("短信发送成功"));
+            }
+            return ResponseEntity.badRequest().body(ApiResponse.error("手机号不能为空"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("短信发送失败: " + e.getMessage()));
         }
+    }
+    
+    private String buildMessageFromTemplate(String template, Map<String, Object> variables) {
+        if (template == null || template.isEmpty()) {
+            template = "【物联网系统】报警通知：请及时处理。";
+        }
+        
+        String message = template;
+        if (variables != null) {
+            for (Map.Entry<String, Object> entry : variables.entrySet()) {
+                String key = "{" + entry.getKey() + "}";
+                String value = entry.getValue() != null ? entry.getValue().toString() : "";
+                message = message.replace(key, value);
+            }
+        }
+        return message;
     }
     
     /**
@@ -90,7 +113,7 @@ public class NotificationController {
     @PostMapping("/test-sms")
     public ResponseEntity<?> testSms(@RequestBody TestSmsRequest request) {
         try {
-            smsService.sendTestSms(request.getPhoneNumber(), request.getMessage());
+            smsService.sendSms(request.getPhoneNumber(), request.getMessage(), "high");
             return ResponseEntity.ok(ApiResponse.success("测试短信发送成功"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("测试短信发送失败: " + e.getMessage()));

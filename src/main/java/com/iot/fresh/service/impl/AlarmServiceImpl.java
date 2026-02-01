@@ -13,6 +13,7 @@ import com.iot.fresh.repository.AlarmRepository;
 import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.AlarmPushService;
 import com.iot.fresh.service.AlarmService;
+import com.iot.fresh.service.impl.SmsNotificationServiceImpl;
 import com.iot.fresh.websocket.WebSocketEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,9 @@ public class AlarmServiceImpl implements AlarmService {
     
     @Autowired
     private AlarmPushService alarmPushService;
+
+    @Autowired
+    private SmsNotificationServiceImpl smsNotificationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -349,18 +353,92 @@ public class AlarmServiceImpl implements AlarmService {
         // 创建报警记录
         Alarm alarm = new Alarm();
         alarm.setVid(alarmData.getVid());
-        alarm.setAlarmType(alarmData.getAlarmType());
-        alarm.setAlarmLevel("medium"); // 默认级别
-        alarm.setMessage(alarmData.getMessage());
-        alarm.setStatus("pending"); // 使用API规范中的状态值
-        alarm.setCreatedAt(alarmData.getTimestamp() != null ? alarmData.getTimestamp() : LocalDateTime.now());
         
-        // 查找设备信息
-        Optional<Device> deviceOpt = deviceRepository.findByVid(alarmData.getVid());
-        if (deviceOpt.isPresent()) {
-            Device device = deviceOpt.get();
-            alarm.setDeviceId(device.getId());
-            alarm.setDeviceName(device.getDeviceName());
+        // 设置设备名称（优先使用新格式的deviceName字段）
+        if (alarmData.getDeviceName() != null && !alarmData.getDeviceName().isEmpty()) {
+            alarm.setDeviceName(alarmData.getDeviceName());
+        } else {
+            // 如果没有提供设备名称，使用VID作为默认名称
+            alarm.setDeviceName("设备" + alarmData.getVid());
+        }
+        
+        // 设置报警类型（优先使用新格式的alarmType字段）
+        if (alarmData.getAlarmType() != null && !alarmData.getAlarmType().isEmpty()) {
+            alarm.setAlarmType(alarmData.getAlarmType());
+        } else {
+            alarm.setAlarmType("temperature"); // 默认类型
+        }
+        
+        // 设置报警级别（优先使用新格式的level字段）
+        if (alarmData.getLevel() != null && !alarmData.getLevel().isEmpty()) {
+            alarm.setAlarmLevel(alarmData.getLevel());
+        } else {
+            alarm.setAlarmLevel("medium"); // 默认级别
+        }
+        
+        // 设置报警消息（优先使用新格式的alarmContent字段）
+        if (alarmData.getAlarmContent() != null && !alarmData.getAlarmContent().isEmpty()) {
+            alarm.setMessage(alarmData.getAlarmContent());
+        } else if (alarmData.getMessage() != null && !alarmData.getMessage().isEmpty()) {
+            alarm.setMessage(alarmData.getMessage());
+        } else {
+            alarm.setMessage("设备" + alarmData.getVid() + "发生报警");
+        }
+        
+        // 设置报警状态（优先使用新格式的status字段）
+        if (alarmData.getStatus() != null && !alarmData.getStatus().isEmpty()) {
+            alarm.setStatus(alarmData.getStatus());
+        } else {
+            alarm.setStatus("active"); // 默认状态
+        }
+        
+        // 设置时间戳（优先使用新格式的timestamp字段）
+        if (alarmData.getTimestamp() != null && !alarmData.getTimestamp().isEmpty()) {
+            try {
+                // 解析时间戳字符串为LocalDateTime
+                LocalDateTime timestamp = LocalDateTime.parse(alarmData.getTimestamp(), 
+                    java.time.format.DateTimeFormatter.ISO_DATE_TIME);
+                alarm.setCreatedAt(timestamp);
+            } catch (Exception e) {
+                System.err.println("时间戳解析失败，使用当前时间: " + e.getMessage());
+                alarm.setCreatedAt(LocalDateTime.now());
+            }
+        } else {
+            alarm.setCreatedAt(LocalDateTime.now());
+        }
+        
+        // 设置device_id：从VID中提取数字部分
+        try {
+            String vid = alarmData.getVid();
+            // 支持多种VID格式：DV0033, DEV0033, 0033等
+            if (vid.startsWith("DV") || vid.startsWith("DEV")) {
+                // 去掉前缀，提取数字部分
+                String numberPart = vid.replaceAll("\\D+", ""); // 移除非数字字符
+                if (!numberPart.isEmpty()) {
+                    Long deviceId = Long.parseLong(numberPart);
+                    alarm.setDeviceId(deviceId);
+                    System.out.println("从VID " + vid + " 提取device_id: " + deviceId);
+                } else {
+                    System.err.println("VID " + vid + " 中不包含数字部分，device_id设置为null");
+                    alarm.setDeviceId(null);
+                }
+            } else if (vid.matches("\\d+")) {
+                // 如果VID本身就是纯数字
+                Long deviceId = Long.parseLong(vid);
+                alarm.setDeviceId(deviceId);
+                System.out.println("VID为纯数字，设置device_id: " + deviceId);
+            } else {
+                System.err.println("无法从VID " + vid + " 中提取device_id，设置为null");
+                alarm.setDeviceId(null);
+            }
+        } catch (Exception e) {
+            System.err.println("从VID中提取device_id失败: " + e.getMessage());
+            alarm.setDeviceId(null);
+        }
+        
+        // 如果设备名称为空，使用默认的设备名称
+        if (alarm.getDeviceName() == null || alarm.getDeviceName().isEmpty()) {
+            alarm.setDeviceName("设备" + alarmData.getVid());
         }
         
         Alarm savedAlarm = alarmRepository.save(alarm);
@@ -368,6 +446,14 @@ public class AlarmServiceImpl implements AlarmService {
         
         // 推送新报警的详细信息到前端
         alarmPushService.sendPriorityAlarm(savedAlarm);
+        
+        // 发送短信通知
+        try {
+            smsNotificationService.sendAlarmSms(savedAlarm);
+            System.out.println("短信通知已发送");
+        } catch (Exception e) {
+            System.err.println("发送短信通知失败: " + e.getMessage());
+        }
         
         // 推送更新后的报警统计数据
         pushUpdatedStatistics();

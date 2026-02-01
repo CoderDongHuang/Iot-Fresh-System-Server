@@ -63,15 +63,44 @@ public class MqttMessageHandler {
         try {
             // 解析报警数据
             AlarmDataDto alarmData = objectMapper.readValue(payload, AlarmDataDto.class);
-            // 如果JSON中没有VID，使用传入的VID
-            if (alarmData.getVid() == null || alarmData.getVid().isEmpty()) {
-                alarmData.setVid(vid);
+            
+            // 设置VID（从主题中获取）
+            alarmData.setVid(vid);
+            
+            // 处理字段映射：优先使用新格式字段，如果为空则使用旧格式字段
+            if (alarmData.getDeviceName() == null || alarmData.getDeviceName().isEmpty()) {
+                // 如果没有设备名称，使用VID作为默认设备名称
+                alarmData.setDeviceName("设备" + vid);
+            }
+            
+            if (alarmData.getAlarmType() == null || alarmData.getAlarmType().isEmpty()) {
+                // 如果没有报警类型，使用默认值
+                alarmData.setAlarmType("temperature");
+            }
+            
+            // 优先使用新格式的level字段，如果没有则使用默认值
+            if (alarmData.getLevel() == null || alarmData.getLevel().isEmpty()) {
+                alarmData.setLevel("medium");
+            }
+            
+            // 优先使用新格式的alarmContent字段，如果没有则使用旧格式的message字段
+            if (alarmData.getAlarmContent() == null || alarmData.getAlarmContent().isEmpty()) {
+                if (alarmData.getMessage() != null && !alarmData.getMessage().isEmpty()) {
+                    alarmData.setAlarmContent(alarmData.getMessage());
+                } else {
+                    alarmData.setAlarmContent("设备" + vid + "发生报警");
+                }
+            }
+            
+            // 设置默认状态
+            if (alarmData.getStatus() == null || alarmData.getStatus().isEmpty()) {
+                alarmData.setStatus("active");
             }
             
             // 调用报警处理服务
             alarmService.processAlarm(alarmData);
             
-            System.out.println("Received alarm data for VID: " + vid + ", Type: " + alarmData.getAlarmType());
+            System.out.println("Received alarm data for VID: " + vid + ", Device: " + alarmData.getDeviceName() + ", Level: " + alarmData.getLevel());
         } catch (Exception e) {
             System.err.println("Error processing alarm data: " + e.getMessage());
             e.printStackTrace();
