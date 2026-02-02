@@ -32,6 +32,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/public/**").permitAll()
                     .requestMatchers("/api/dashboard/**").permitAll()  // 仪表盘API公开访问
                     .requestMatchers("/api/device/history-data").permitAll()  // 历史数据API公开访问
+                    .requestMatchers("/api/sms/**").permitAll()  // 短信API公开访问
                     .requestMatchers("/api/user/profile").authenticated()  // 需要认证
                     .requestMatchers("/api/user/avatar").authenticated()   // 需要认证
                     .requestMatchers("/api/user/upload-avatar").authenticated() // 需要认证

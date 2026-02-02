@@ -3,6 +3,7 @@ package com.iot.fresh.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.iot.fresh.entity.SmsSettings;
 import lombok.Data;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -11,13 +12,13 @@ public class SmsSettingsDto {
     private Boolean enabled = false;
     
     @JsonProperty("phoneNumbers")
-    private List<String> phoneNumbers = Arrays.asList("13800138000");
+    private List<String> phoneNumbers = new ArrayList<>();
     
     @JsonProperty("notifyLevels")
     private List<String> notifyLevels = Arrays.asList("high", "medium");
     
     @JsonProperty("quietHours")
-    private String[] quietHours = {"22:00", "07:00"};
+    private List<String> quietHours = Arrays.asList("22:00", "07:00");
     
     private String pushFrequency = "immediate";
     
@@ -36,7 +37,7 @@ public class SmsSettingsDto {
         }
         
         if (this.quietHours != null) {
-            entity.setQuietHours(convertArrayToJson(this.quietHours));
+            entity.setQuietHours(convertListToJson(this.quietHours));
         }
         
         entity.setPushFrequency(this.pushFrequency);
@@ -63,7 +64,7 @@ public class SmsSettingsDto {
         }
         
         if (entity.getQuietHours() != null) {
-            dto.setQuietHours(convertJsonToArray(entity.getQuietHours()));
+            dto.setQuietHours(convertJsonToList(entity.getQuietHours()));
         }
         
         return dto;

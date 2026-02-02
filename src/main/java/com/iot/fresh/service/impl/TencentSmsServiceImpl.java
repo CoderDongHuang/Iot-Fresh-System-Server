@@ -23,6 +23,15 @@ public class TencentSmsServiceImpl implements SmsService {
     @Value("${sms.sign-name}")
     private String signName;
     
+    @Value("${sms.template-codes.high}")
+    private String highTemplateId;
+    
+    @Value("${sms.template-codes.medium}")
+    private String mediumTemplateId;
+    
+    @Value("${sms.template-codes.low}")
+    private String lowTemplateId;
+    
     @Override
     public boolean sendSms(String phoneNumber, String message, String templateType) {
         try {
@@ -106,13 +115,13 @@ public class TencentSmsServiceImpl implements SmsService {
     private String getTemplateIdByType(String templateType) {
         switch (templateType.toLowerCase()) {
             case "high":
-                return "123456"; // 高优先级模板ID
+                return highTemplateId;
             case "medium":
-                return "123457"; // 中优先级模板ID
+                return mediumTemplateId;
             case "low":
-                return "123458"; // 低优先级模板ID
+                return lowTemplateId;
             default:
-                return "123456"; // 默认使用高优先级模板
+                return highTemplateId; // 默认使用高优先级模板
         }
     }
 }

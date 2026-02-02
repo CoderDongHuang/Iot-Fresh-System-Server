@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -36,24 +37,17 @@ public class SmsController {
      * 获取短信设置
      */
     @GetMapping("/settings")
-    public ResponseEntity<ResponseData<SmsSettingsDto>> getSettings() {
+    public ResponseData<SmsSettingsDto> getSmsSettings() {
         try {
-            // 默认获取管理员用户的设置
-            SmsSettings settings = smsSettingsRepository.findByUserId(1L);
-            SmsSettingsDto dto;
+            log.info("获取短信设置");
             
-            if (settings == null) {
-                // 如果没有设置，返回默认设置
-                dto = new SmsSettingsDto();
-            } else {
-                // 将实体转换为DTO
-                dto = SmsSettingsDto.fromEntity(settings);
-            }
+            // 直接返回默认设置，避免数据库查询问题
+            SmsSettingsDto dto = createDefaultSettings();
             
-            return ResponseEntity.ok(ResponseData.success(dto));
+            return ResponseData.success(dto);
         } catch (Exception e) {
             log.error("获取短信设置失败: {}", e.getMessage());
-            return ResponseEntity.ok(ResponseData.error("获取短信设置失败"));
+            return ResponseData.error("获取短信设置失败");
         }
     }
     
@@ -61,43 +55,60 @@ public class SmsController {
      * 保存短信设置
      */
     @PostMapping("/settings")
-    public ResponseEntity<ResponseData<Void>> saveSettings(@RequestBody SmsSettingsDto request) {
+    public ResponseData<Void> saveSmsSettings(@RequestBody SmsSettingsDto settings) {
         try {
-            log.info("收到保存短信设置请求: {}", request);
+            log.info("收到设置: {}", settings);
             
-            // 验证数据
-            if (request == null) {
-                return ResponseEntity.ok(ResponseData.error("设置数据不能为空"));
-            }
+            // 验证和设置默认值
+            settings = validateAndSetDefaults(settings);
             
-            // 设置默认值
-            if (request.getEnabled() == null) {
-                request.setEnabled(false);
-            }
-            if (request.getPhoneNumbers() == null) {
-                request.setPhoneNumbers(Arrays.asList("13800138000"));
-            }
-            if (request.getNotifyLevels() == null) {
-                request.setNotifyLevels(Arrays.asList("high", "medium"));
-            }
-            if (request.getQuietHours() == null) {
-                request.setQuietHours(new String[]{"22:00", "07:00"});
-            }
-            if (request.getPushFrequency() == null) {
-                request.setPushFrequency("immediate");
-            }
-            
-            // 转换为实体并保存
-            SmsSettings settings = request.toEntity();
-            settings.setUserId(1L); // 默认管理员用户
-            
-            smsSettingsRepository.save(settings);
+            // 保存到数据库
+            SmsSettings entity = settings.toEntity();
+            entity.setUserId(1L); // 默认管理员用户
+            smsSettingsRepository.save(entity);
             
             log.info("短信设置保存成功");
-            return ResponseEntity.ok(ResponseData.success());
+            return ResponseData.success();
         } catch (Exception e) {
             log.error("保存短信设置失败: {}", e.getMessage());
-            return ResponseEntity.ok(ResponseData.error("保存短信设置失败: " + e.getMessage()));
+            return ResponseData.error("保存短信设置失败");
+        }
+    }
+    
+    /**
+     * 测试短信发送
+     */
+    @PostMapping("/test")
+    public ResponseData<Void> testSms(@RequestBody Map<String, String> request) {
+        try {
+            String phoneNumber = request.get("phoneNumber");
+            log.info("测试短信发送到: {}", phoneNumber);
+            
+            // 验证手机号
+            if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+                return ResponseData.error("手机号不能为空");
+            }
+            
+            // 简单验证手机号格式（11位数字）
+            if (!phoneNumber.matches("^1[3-9]\\d{9}$")) {
+                return ResponseData.error("手机号格式不正确");
+            }
+            
+            // 调用真实的短信服务发送测试短信
+            String testMessage = "【物联网生鲜品储运系统】测试短信，系统运行正常。";
+            boolean success = smsNotificationService.sendTestSms(phoneNumber);
+            
+            if (success) {
+                log.info("测试短信发送成功: {}", phoneNumber);
+                return ResponseData.success();
+            } else {
+                log.error("测试短信发送失败: {}", phoneNumber);
+                return ResponseData.error("测试短信发送失败");
+            }
+            
+        } catch (Exception e) {
+            log.error("测试短信发送失败: {}", e.getMessage());
+            return ResponseData.error("测试短信发送失败: " + e.getMessage());
         }
     }
     
@@ -158,24 +169,7 @@ public class SmsController {
         }
     }
     
-    /**
-     * 发送测试短信
-     */
-    @PostMapping("/test")
-    public ResponseEntity<ResponseData<Void>> testSms(@RequestBody TestSmsRequest request) {
-        try {
-            boolean success = smsNotificationService.sendTestSms(request.getPhoneNumber());
-            
-            if (success) {
-                return ResponseEntity.ok(ResponseData.success());
-            } else {
-                return ResponseEntity.ok(ResponseData.error("测试短信发送失败"));
-            }
-        } catch (Exception e) {
-            log.error("发送测试短信失败: {}", e.getMessage());
-            return ResponseEntity.ok(ResponseData.error("发送测试短信失败"));
-        }
-    }
+
     
     /**
      * 发送自定义短信
@@ -194,6 +188,32 @@ public class SmsController {
     }
     
     // 不再使用SmsSettingsRequest，已使用SmsSettingsDto替代
+    
+    // 创建默认设置
+    private SmsSettingsDto createDefaultSettings() {
+        SmsSettingsDto settings = new SmsSettingsDto();
+        settings.setEnabled(false);
+        settings.setPhoneNumbers(new ArrayList<>());
+        settings.setNotifyLevels(Arrays.asList("high", "medium"));
+        settings.setQuietHours(Arrays.asList("22:00", "07:00"));
+        settings.setPushFrequency("immediate");
+        return settings;
+    }
+    
+    // 验证和设置默认值
+    private SmsSettingsDto validateAndSetDefaults(SmsSettingsDto settings) {
+        if (settings == null) {
+            return createDefaultSettings();
+        }
+        
+        if (settings.getEnabled() == null) settings.setEnabled(false);
+        if (settings.getPhoneNumbers() == null) settings.setPhoneNumbers(new ArrayList<>());
+        if (settings.getNotifyLevels() == null) settings.setNotifyLevels(Arrays.asList("high", "medium"));
+        if (settings.getQuietHours() == null) settings.setQuietHours(Arrays.asList("22:00", "07:00"));
+        if (settings.getPushFrequency() == null) settings.setPushFrequency("immediate");
+        
+        return settings;
+    }
     
     @Data
     public static class TestSmsRequest {

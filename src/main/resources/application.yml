@@ -49,7 +49,14 @@ mqtt:
 # 短信配置
 sms:
   enabled: true
-  provider: tencent   
+  provider: tencent
+  access-key: 您的SecretId  # 请替换为您的腾讯云SecretId
+  secret-key: 您的SecretKey  # 请替换为您的腾讯云SecretKey
+  sign-name: 物联网生鲜品储运系统  # 请替换为您的短信签名
+  template-codes:
+    high: 您的模板ID  # 请替换为高优先级模板ID
+    medium: 您的模板ID  # 请替换为中优先级模板ID
+    low: 您的模板ID  # 请替换为低优先级模板ID   
 
 # WebSocket配置
 websocket:
