@@ -38,6 +38,7 @@ log/
 # Application properties with sensitive data
 application-prod.yml
 application-dev.yml
+application-example.yml
 
 # IDE specific
 .vscode/

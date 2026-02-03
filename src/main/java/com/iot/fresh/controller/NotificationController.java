@@ -2,7 +2,7 @@ package com.iot.fresh.controller;
 
 import com.iot.fresh.dto.*;
 import com.iot.fresh.service.*;
-import com.iot.fresh.service.impl.EmailNotificationServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,10 +10,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notification")
+@Slf4j
 public class NotificationController {
     
     @Autowired
-    private EmailNotificationServiceImpl emailNotificationService;
+    private EmailService emailService;
     
     @Autowired
     private NotificationSettingsService settingsService;
@@ -24,17 +25,28 @@ public class NotificationController {
     @PostMapping("/email")
     public ResponseEntity<?> sendEmailNotification(@RequestBody EmailNotifyRequest request) {
         try {
-            // 简化实现：发送单封邮件
+            log.info("收到邮件通知请求: {}", request);
+            
             if (request.getEmailAddresses() != null && !request.getEmailAddresses().isEmpty()) {
-                String emailAddress = request.getEmailAddresses().get(0); // 取第一个邮箱地址
                 // 使用模板和变量构建邮件内容
                 String subject = buildMessageFromTemplate(request.getSubject(), request.getVariables());
                 String content = buildMessageFromTemplate(request.getContent(), request.getVariables());
-                // 这里需要调用邮件服务发送邮件
+                
+                log.info("发送邮件 - 主题: {}, 收件人数量: {}", subject, request.getEmailAddresses().size());
+                
+                // 调用邮件服务发送邮件给所有收件人
+                for (String emailAddress : request.getEmailAddresses()) {
+                    boolean success = emailService.sendAlertEmail(emailAddress, subject, content);
+                    if (!success) {
+                        log.warn("邮件发送失败: {}", emailAddress);
+                    }
+                }
+                
                 return ResponseEntity.ok(ApiResponse.success("邮件发送成功"));
             }
             return ResponseEntity.badRequest().body(ApiResponse.error("邮箱地址不能为空"));
         } catch (Exception e) {
+            log.error("邮件发送失败: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("邮件发送失败: " + e.getMessage()));
         }
     }
@@ -115,9 +127,22 @@ public class NotificationController {
     @PostMapping("/test-email")
     public ResponseEntity<?> testEmail(@RequestBody TestEmailRequest request) {
         try {
-            emailNotificationService.sendTestEmail(request.getEmailAddress());
-            return ResponseEntity.ok(ApiResponse.success("测试邮件发送成功"));
+            log.info("发送测试邮件到: {}", request.getEmailAddress());
+            
+            String subject = "【物联网系统】测试邮件";
+            String content = "这是一封测试邮件，用于验证邮件发送功能是否正常。\n\n" +
+                           "发送时间: " + java.time.LocalDateTime.now() + "\n" +
+                           "系统: 物联网生鲜品储运系统";
+            
+            boolean success = emailService.sendAlertEmail(request.getEmailAddress(), subject, content);
+            
+            if (success) {
+                return ResponseEntity.ok(ApiResponse.success("测试邮件发送成功"));
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("测试邮件发送失败"));
+            }
         } catch (Exception e) {
+            log.error("测试邮件发送失败: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("测试邮件发送失败: " + e.getMessage()));
         }
     }

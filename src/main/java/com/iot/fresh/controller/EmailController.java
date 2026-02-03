@@ -1,5 +1,6 @@
 package com.iot.fresh.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.entity.EmailSettings;
 import com.iot.fresh.entity.EmailTemplates;
@@ -52,26 +53,52 @@ public class EmailController {
      * 保存邮件设置
      */
     @PostMapping("/settings")
-    public ResponseEntity<ApiResponse<Void>> saveEmailSettings(@RequestBody EmailSettings request) {
+    public ResponseEntity<ApiResponse<Void>> saveEmailSettings(@RequestBody Map<String, Object> requestData) {
         try {
+            log.info("收到保存邮件设置请求: {}", requestData);
+            
             EmailSettings settings = emailSettingsRepository.findByUserId(1L);
             if (settings == null) {
                 settings = new EmailSettings();
                 settings.setUserId(1L);
             }
             
-            settings.setEnabled(request.getEnabled());
-            settings.setEmailAddresses(request.getEmailAddresses());
-            settings.setNotifyLevels(request.getNotifyLevels());
-            settings.setQuietHours(request.getQuietHours());
-            settings.setPushFrequency(request.getPushFrequency());
+            // 处理前端发送的数组数据，转换为JSON字符串
+            ObjectMapper objectMapper = new ObjectMapper();
+            
+            settings.setEnabled((Boolean) requestData.get("enabled"));
+            
+            // 处理邮箱地址数组
+            if (requestData.containsKey("emailAddresses")) {
+                List<String> emailAddresses = (List<String>) requestData.get("emailAddresses");
+                settings.setEmailAddresses(objectMapper.writeValueAsString(emailAddresses));
+            }
+            
+            // 处理通知级别数组
+            if (requestData.containsKey("notifyLevels")) {
+                List<String> notifyLevels = (List<String>) requestData.get("notifyLevels");
+                settings.setNotifyLevels(objectMapper.writeValueAsString(notifyLevels));
+            }
+            
+            // 处理免打扰时段数组
+            if (requestData.containsKey("quietHours")) {
+                List<String> quietHours = (List<String>) requestData.get("quietHours");
+                settings.setQuietHours(objectMapper.writeValueAsString(quietHours));
+            }
+            
+            settings.setPushFrequency((String) requestData.get("pushFrequency"));
+            
+            // 记录处理后的数据
+            log.info("处理后的设置数据 - enabled: {}, emailAddresses: {}, notifyLevels: {}, quietHours: {}, pushFrequency: {}", 
+                settings.getEnabled(), settings.getEmailAddresses(), settings.getNotifyLevels(), 
+                settings.getQuietHours(), settings.getPushFrequency());
             
             emailSettingsRepository.save(settings);
             log.info("邮件设置保存成功");
             return ResponseEntity.ok(ApiResponse.success("设置保存成功", null));
         } catch (Exception e) {
-            log.error("保存邮件设置失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("保存邮件设置失败"));
+            log.error("保存邮件设置失败: {}", e.getMessage(), e);
+            return ResponseEntity.ok(ApiResponse.error("保存邮件设置失败: " + e.getMessage()));
         }
     }
     
@@ -98,11 +125,38 @@ public class EmailController {
      * 保存邮件模板
      */
     @PostMapping("/templates")
-    public ResponseEntity<ApiResponse<Void>> saveTemplates(@RequestBody Map<String, EmailTemplateRequest> templates) {
+    public ResponseEntity<ApiResponse<Void>> saveTemplates(@RequestBody Object requestData) {
         try {
-            for (Map.Entry<String, EmailTemplateRequest> entry : templates.entrySet()) {
-                String templateType = entry.getKey();
-                EmailTemplateRequest templateRequest = entry.getValue();
+            log.info("收到保存邮件模板请求，数据类型: {}, 数据内容: {}", 
+                requestData != null ? requestData.getClass().getSimpleName() : "null", 
+                requestData);
+            
+            // 检查数据类型
+            if (requestData == null) {
+                return ResponseEntity.ok(ApiResponse.error("请求数据不能为空"));
+            }
+            
+            // 尝试转换为Map
+            if (!(requestData instanceof Map)) {
+                return ResponseEntity.ok(ApiResponse.error("请求数据格式不正确，期望Map格式"));
+            }
+            
+            Map<?, ?> templatesMap = (Map<?, ?>) requestData;
+            log.info("模板数据Map大小: {}", templatesMap.size());
+            
+            for (Map.Entry<?, ?> entry : templatesMap.entrySet()) {
+                String templateType = entry.getKey().toString();
+                Object templateDataObj = entry.getValue();
+                
+                log.info("处理模板类型: {}, 数据类型: {}", templateType, 
+                    templateDataObj != null ? templateDataObj.getClass().getSimpleName() : "null");
+                
+                if (!(templateDataObj instanceof Map)) {
+                    log.warn("模板数据格式不正确，跳过模板类型: {}", templateType);
+                    continue;
+                }
+                
+                Map<?, ?> templateData = (Map<?, ?>) templateDataObj;
                 
                 EmailTemplates template = emailTemplatesRepository.findByTemplateType(templateType);
                 if (template == null) {
@@ -110,16 +164,22 @@ public class EmailController {
                     template.setTemplateType(templateType);
                 }
                 
-                template.setTemplateSubject(templateRequest.getSubject());
-                template.setTemplateContent(templateRequest.getContent());
+                // 处理模板数据
+                String subject = templateData.get("subject") != null ? templateData.get("subject").toString() : "";
+                String content = templateData.get("content") != null ? templateData.get("content").toString() : "";
+                
+                log.info("处理模板类型: {}, 主题: {}, 内容长度: {}", templateType, subject, content.length());
+                
+                template.setTemplateSubject(subject);
+                template.setTemplateContent(content);
                 emailTemplatesRepository.save(template);
             }
             
             log.info("邮件模板保存成功");
             return ResponseEntity.ok(ApiResponse.success("模板保存成功", null));
         } catch (Exception e) {
-            log.error("保存邮件模板失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("保存邮件模板失败"));
+            log.error("保存邮件模板失败: {}", e.getMessage(), e);
+            return ResponseEntity.ok(ApiResponse.error("保存邮件模板失败: " + e.getMessage()));
         }
     }
     

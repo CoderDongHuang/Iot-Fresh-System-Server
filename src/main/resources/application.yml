@@ -38,12 +38,12 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
-  # 邮件服务器配置（使用QQ邮箱示例）
+  # 邮件服务器配置（使用环境变量）
   mail:
-    host: smtp.qq.com
-    port: 587
-    username: 1218798773@qq.com
-    password: ynwvbbtafzjdbaad
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@qq.com}
+    password: ${MAIL_PASSWORD:your-authorization-code}
     protocol: smtp
     properties:
       mail:
