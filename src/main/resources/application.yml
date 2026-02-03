@@ -38,6 +38,21 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+  # 邮件服务器配置（使用QQ邮箱示例）
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 1218798773@qq.com
+    password: ynwvbbtafzjdbaad
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        debug: false
 
 # MQTT配置
 mqtt:
@@ -46,17 +61,9 @@ mqtt:
   username: 
   password:
 
-# 短信配置
-sms:
-  enabled: true
-  provider: tencent
-  access-key: 您的SecretId  # 请替换为您的腾讯云SecretId
-  secret-key: 您的SecretKey  # 请替换为您的腾讯云SecretKey
-  sign-name: 物联网生鲜品储运系统  # 请替换为您的短信签名
-  template-codes:
-    high: 您的模板ID  # 请替换为高优先级模板ID
-    medium: 您的模板ID  # 请替换为中优先级模板ID
-    low: 您的模板ID  # 请替换为低优先级模板ID   
+# 邮件配置
+email:
+  enabled: true  # 是否启用邮件通知
 
 # WebSocket配置
 websocket:

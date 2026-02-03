@@ -2,6 +2,7 @@ package com.iot.fresh.service;
 
 import com.iot.fresh.dto.NotificationSettings;
 import com.iot.fresh.entity.Alarm;
+import com.iot.fresh.service.impl.EmailNotificationServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Arrays;
@@ -16,7 +17,7 @@ public class EnhancedAlarmService {
     private AlarmPushService pushService;
     
     @Autowired
-    private SmsService smsService;
+    private EmailNotificationServiceImpl emailNotificationService;
     
     @Autowired
     private AlarmService alarmService;
@@ -47,9 +48,9 @@ public class EnhancedAlarmService {
                 pushService.sendPriorityAlarm(alarm);
             }
             
-            // 发送短信
+            // 发送邮件
             if (settings.isSmsEnabled() && isHighPriority(alarm.getAlarmLevel())) {
-                sendSmsNotification(alarm, settings);
+                sendEmailNotification(alarm, settings);
             }
         }
     }
@@ -83,16 +84,9 @@ public class EnhancedAlarmService {
         return "high".equals(level);
     }
     
-    private void sendSmsNotification(Alarm alarm, NotificationSettings settings) {
-        String template = getTemplateByLevel(alarm.getAlarmLevel());
-        String message = createMessageFromTemplate(template, alarm);
-        
-        if (settings.getPhoneNumbers() != null && !settings.getPhoneNumbers().isEmpty()) {
-            List<String> phoneNumbers = Arrays.asList(settings.getPhoneNumbers().split(","));
-            for (String phoneNumber : phoneNumbers) {
-                smsService.sendSms(phoneNumber, message, alarm.getAlarmLevel());
-            }
-        }
+    private void sendEmailNotification(Alarm alarm, NotificationSettings settings) {
+        // 直接调用邮件通知服务发送报警邮件
+        emailNotificationService.sendAlarmEmail(alarm);
     }
     
     private String getTemplateByLevel(String level) {

@@ -13,7 +13,7 @@ import com.iot.fresh.repository.AlarmRepository;
 import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.AlarmPushService;
 import com.iot.fresh.service.AlarmService;
-import com.iot.fresh.service.impl.SmsNotificationServiceImpl;
+import com.iot.fresh.service.impl.EmailNotificationServiceImpl;
 import com.iot.fresh.websocket.WebSocketEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -47,7 +47,7 @@ public class AlarmServiceImpl implements AlarmService {
     private AlarmPushService alarmPushService;
 
     @Autowired
-    private SmsNotificationServiceImpl smsNotificationService;
+    private EmailNotificationServiceImpl emailNotificationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -447,12 +447,12 @@ public class AlarmServiceImpl implements AlarmService {
         // 推送新报警的详细信息到前端
         alarmPushService.sendPriorityAlarm(savedAlarm);
         
-        // 发送短信通知
+        // 发送邮件通知
         try {
-            smsNotificationService.sendAlarmSms(savedAlarm);
-            System.out.println("短信通知已发送");
+            emailNotificationService.sendAlarmEmail(savedAlarm);
+            System.out.println("邮件通知已发送");
         } catch (Exception e) {
-            System.err.println("发送短信通知失败: " + e.getMessage());
+            System.err.println("发送邮件通知失败: " + e.getMessage());
         }
         
         // 推送更新后的报警统计数据

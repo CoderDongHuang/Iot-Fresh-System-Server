@@ -381,30 +381,12 @@ INSERT INTO alarm_history (alarm_id, action, operator, remark, timestamp) VALUES
 (60, 'create', 'system', '系统自动检测到质检设备采样异常', DATE_SUB(NOW(), INTERVAL 365 MINUTE)),
 (60, 'acknowledge', 'operator2', '质检设备采样异常已确认', DATE_SUB(NOW(), INTERVAL 360 MINUTE));
 
--- 创建报警通知设置表
-CREATE TABLE IF NOT EXISTS alarm_notification_settings (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    sms_enabled BOOLEAN DEFAULT false,
-    phone_numbers VARCHAR(500),
-    sound_enabled BOOLEAN DEFAULT true,
-    vibration_enabled BOOLEAN DEFAULT true,
-    popup_enabled BOOLEAN DEFAULT true,
-    notify_levels VARCHAR(100) DEFAULT 'high,medium',
-    push_frequency VARCHAR(20) DEFAULT 'immediate',
-    quiet_hours_start VARCHAR(5) DEFAULT '22:00',
-    quiet_hours_end VARCHAR(5) DEFAULT '07:00',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_user_id (user_id)
-);
-
--- 创建短信设置表
-CREATE TABLE IF NOT EXISTS sms_settings (
+-- 创建邮件设置表
+CREATE TABLE IF NOT EXISTS email_settings (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     enabled BOOLEAN DEFAULT FALSE,
-    phone_numbers JSON, -- ["13800138000", "13900139000"]
+    email_addresses JSON, -- ["admin@example.com", "user@example.com"]
     notify_levels JSON, -- ["high", "medium"]
     quiet_hours JSON, -- ["22:00", "07:00"]
     push_frequency VARCHAR(20) DEFAULT 'immediate',
@@ -413,21 +395,23 @@ CREATE TABLE IF NOT EXISTS sms_settings (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- 创建短信模板表
-CREATE TABLE IF NOT EXISTS sms_templates (
+-- 创建邮件模板表
+CREATE TABLE IF NOT EXISTS email_templates (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     template_type VARCHAR(20) NOT NULL, -- high, medium, low
-    template_content TEXT NOT NULL,
+    template_subject VARCHAR(255) NOT NULL, -- 邮件主题
+    template_content TEXT NOT NULL, -- 邮件内容
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- 创建短信发送记录表
-CREATE TABLE IF NOT EXISTS sms_logs (
+-- 创建邮件发送记录表
+CREATE TABLE IF NOT EXISTS email_logs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     alarm_id BIGINT,
-    phone_number VARCHAR(20) NOT NULL,
-    message_content TEXT NOT NULL,
+    email_address VARCHAR(100) NOT NULL,
+    email_subject VARCHAR(255) NOT NULL,
+    email_content TEXT NOT NULL,
     template_type VARCHAR(20), -- high, medium, low
     send_status VARCHAR(20) NOT NULL, -- success, failed
     error_message TEXT,
@@ -435,20 +419,14 @@ CREATE TABLE IF NOT EXISTS sms_logs (
     FOREIGN KEY (alarm_id) REFERENCES alarms(id)
 );
 
--- 插入默认短信设置
-INSERT INTO sms_settings (user_id, enabled, phone_numbers, notify_levels, quiet_hours, push_frequency) VALUES
-(1, true, '["13800138000", "13900139000"]', '["high", "medium"]', '["22:00", "07:00"]', 'immediate'),
-(2, true, '["13800138001"]', '["high"]', '["23:00", "08:00"]', 'immediate'),
-(3, false, '["13800138002"]', '["high", "medium", "low"]', '["00:00", "06:00"]', 'batch');
+-- 插入默认邮件设置
+INSERT INTO email_settings (user_id, enabled, email_addresses, notify_levels, quiet_hours, push_frequency) VALUES
+(1, true, '["admin@example.com", "manager@example.com"]', '["high", "medium"]', '["22:00", "07:00"]', 'immediate'),
+(2, true, '["user1@example.com"]', '["high"]', '["23:00", "08:00"]', 'immediate'),
+(3, false, '["user2@example.com"]', '["high", "medium", "low"]', '["00:00", "06:00"]', 'batch');
 
--- 插入默认短信模板
-INSERT INTO sms_templates (template_type, template_content) VALUES
-('high', '【物联网生鲜品储运系统】紧急报警！设备：{device}，级别：{level}，内容：{content}，请立即处理！'),
-('medium', '【物联网生鲜品储运系统】重要报警！设备：{device}，内容：{content}，请及时处理。'),
-('low', '【物联网生鲜品储运系统】一般报警！设备：{device}，内容：{content}，请关注。');
-
--- 插入默认通知设置
-INSERT INTO alarm_notification_settings (user_id, sms_enabled, phone_numbers, sound_enabled, vibration_enabled, popup_enabled, notify_levels, push_frequency, quiet_hours_start, quiet_hours_end) VALUES
-(1, true, '13800138000,13900139000', true, true, true, 'high,medium', 'immediate', '22:00', '07:00'),
-(2, true, '13800138001', true, true, true, 'high', 'immediate', '23:00', '08:00'),
-(3, false, '13800138002', true, false, true, 'high,medium,low', 'batch', '00:00', '06:00');
+-- 插入默认邮件模板
+INSERT INTO email_templates (template_type, template_subject, template_content) VALUES
+('high', '【物联网生鲜品储运系统】紧急报警通知', '紧急报警通知\\n\\n设备：{device}\\n报警级别：{level}\\n报警内容：{content}\\n报警时间：{time}\\n报警类型：{type}\\n\\n请立即处理！'),
+('medium', '【物联网生鲜品储运系统】重要报警通知', '重要报警通知\\n\\n设备：{device}\\n报警级别：{level}\\n报警内容：{content}\\n报警时间：{time}\\n报警类型：{type}\\n\\n请及时处理。'),
+('low', '【物联网生鲜品储运系统】一般报警通知', '一般报警通知\\n\\n设备：{device}\\n报警级别：{level}\\n报警内容：{content}\\n报警时间：{time}\\n报警类型：{type}\\n\\n请关注。');

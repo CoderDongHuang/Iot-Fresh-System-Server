@@ -6,9 +6,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_logs")
+@Table(name = "email_logs")
 @Data
-public class SmsLogs {
+public class EmailLogs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -16,11 +16,14 @@ public class SmsLogs {
     @Column(name = "alarm_id")
     private Long alarmId;
     
-    @Column(name = "phone_number", nullable = false, length = 20)
-    private String phoneNumber;
+    @Column(name = "email_address", nullable = false)
+    private String emailAddress;
     
-    @Column(name = "message_content", nullable = false, columnDefinition = "TEXT")
-    private String messageContent;
+    @Column(name = "email_subject", nullable = false)
+    private String emailSubject;
+    
+    @Column(name = "email_content", columnDefinition = "TEXT", nullable = false)
+    private String emailContent;
     
     @Column(name = "template_type")
     private String templateType; // high, medium, low

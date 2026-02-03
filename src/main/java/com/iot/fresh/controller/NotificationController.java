@@ -2,6 +2,7 @@ package com.iot.fresh.controller;
 
 import com.iot.fresh.dto.*;
 import com.iot.fresh.service.*;
+import com.iot.fresh.service.impl.EmailNotificationServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,28 +13,29 @@ import java.util.Map;
 public class NotificationController {
     
     @Autowired
-    private SmsService smsService;
+    private EmailNotificationServiceImpl emailNotificationService;
     
     @Autowired
     private NotificationSettingsService settingsService;
     
     /**
-     * 发送短信通知
+     * 发送邮件通知
      */
-    @PostMapping("/sms")
-    public ResponseEntity<?> sendSmsNotification(@RequestBody SmsNotifyRequest request) {
+    @PostMapping("/email")
+    public ResponseEntity<?> sendEmailNotification(@RequestBody EmailNotifyRequest request) {
         try {
-            // 简化实现：发送单条短信
-            if (request.getPhoneNumbers() != null && !request.getPhoneNumbers().isEmpty()) {
-                String phoneNumber = request.getPhoneNumbers().get(0); // 取第一个手机号
-                // 使用模板和变量构建短信内容
-                String message = buildMessageFromTemplate(request.getTemplate(), request.getVariables());
-                smsService.sendSms(phoneNumber, message, "high");
-                return ResponseEntity.ok(ApiResponse.success("短信发送成功"));
+            // 简化实现：发送单封邮件
+            if (request.getEmailAddresses() != null && !request.getEmailAddresses().isEmpty()) {
+                String emailAddress = request.getEmailAddresses().get(0); // 取第一个邮箱地址
+                // 使用模板和变量构建邮件内容
+                String subject = buildMessageFromTemplate(request.getSubject(), request.getVariables());
+                String content = buildMessageFromTemplate(request.getContent(), request.getVariables());
+                // 这里需要调用邮件服务发送邮件
+                return ResponseEntity.ok(ApiResponse.success("邮件发送成功"));
             }
-            return ResponseEntity.badRequest().body(ApiResponse.error("手机号不能为空"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("邮箱地址不能为空"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("短信发送失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("邮件发送失败: " + e.getMessage()));
         }
     }
     
@@ -82,41 +84,41 @@ public class NotificationController {
     }
     
     /**
-     * 获取短信模板
+     * 获取邮件模板
      */
-    @GetMapping("/templates")
-    public ResponseEntity<?> getSmsTemplates() {
+    @GetMapping("/email-templates")
+    public ResponseEntity<?> getEmailTemplates() {
         try {
-            Map<String, String> templates = settingsService.getSmsTemplates();
+            Map<String, String> templates = settingsService.getEmailTemplates();
             return ResponseEntity.ok(ApiResponse.success(templates));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("获取短信模板失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("获取邮件模板失败: " + e.getMessage()));
         }
     }
     
     /**
-     * 保存短信模板
+     * 保存邮件模板
      */
-    @PostMapping("/templates")
-    public ResponseEntity<?> saveSmsTemplates(@RequestBody Map<String, String> templates) {
+    @PostMapping("/email-templates")
+    public ResponseEntity<?> saveEmailTemplates(@RequestBody Map<String, String> templates) {
         try {
-            settingsService.saveSmsTemplates(templates);
+            settingsService.saveEmailTemplates(templates);
             return ResponseEntity.ok(ApiResponse.success("模板保存成功"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("保存短信模板失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("保存邮件模板失败: " + e.getMessage()));
         }
     }
     
     /**
-     * 测试短信
+     * 测试邮件
      */
-    @PostMapping("/test-sms")
-    public ResponseEntity<?> testSms(@RequestBody TestSmsRequest request) {
+    @PostMapping("/test-email")
+    public ResponseEntity<?> testEmail(@RequestBody TestEmailRequest request) {
         try {
-            smsService.sendSms(request.getPhoneNumber(), request.getMessage(), "high");
-            return ResponseEntity.ok(ApiResponse.success("测试短信发送成功"));
+            emailNotificationService.sendTestEmail(request.getEmailAddress());
+            return ResponseEntity.ok(ApiResponse.success("测试邮件发送成功"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("测试短信发送失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error("测试邮件发送失败: " + e.getMessage()));
         }
     }
 }

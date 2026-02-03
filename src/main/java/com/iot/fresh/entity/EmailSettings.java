@@ -6,18 +6,30 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sms_templates")
+@Table(name = "email_settings")
 @Data
-public class SmsTemplates {
+public class EmailSettings {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "template_type", nullable = false)
-    private String templateType; // high, medium, low
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
     
-    @Column(name = "template_content", nullable = false, columnDefinition = "TEXT")
-    private String templateContent;
+    @Column(name = "enabled")
+    private Boolean enabled = false;
+    
+    @Column(name = "email_addresses", columnDefinition = "JSON")
+    private String emailAddresses; // JSON格式: ["admin@example.com", "user@example.com"]
+    
+    @Column(name = "notify_levels", columnDefinition = "JSON")
+    private String notifyLevels; // JSON格式: ["high", "medium"]
+    
+    @Column(name = "quiet_hours", columnDefinition = "JSON")
+    private String quietHours; // JSON格式: ["22:00", "07:00"]
+    
+    @Column(name = "push_frequency")
+    private String pushFrequency = "immediate";
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at")

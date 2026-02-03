@@ -15,11 +15,19 @@ public class NotificationSettingsService {
     // 存储短信模板
     private Map<String, String> smsTemplates = new HashMap<>();
     
+    // 存储邮件模板
+    private Map<String, String> emailTemplates = new HashMap<>();
+    
     public NotificationSettingsService() {
         // 初始化默认短信模板
         smsTemplates.put("high", "【物联网系统】紧急报警：设备{deviceName}发生{alarmType}，请立即处理！");
         smsTemplates.put("medium", "【物联网系统】重要报警：设备{deviceName}发生{alarmType}，请及时处理。");
         smsTemplates.put("low", "【物联网系统】一般报警：设备{deviceName}发生{alarmType}，请关注。");
+        
+        // 初始化默认邮件模板
+        emailTemplates.put("high", "【物联网系统】紧急报警：设备{deviceName}发生{alarmType}，请立即处理！");
+        emailTemplates.put("medium", "【物联网系统】重要报警：设备{deviceName}发生{alarmType}，请及时处理。");
+        emailTemplates.put("low", "【物联网系统】一般报警：设备{deviceName}发生{alarmType}，请关注。");
         
         // 初始化默认设置
         NotificationSettings defaultSettings = new NotificationSettings();
@@ -68,5 +76,18 @@ public class NotificationSettingsService {
     
     public String getSmsTemplate(String level) {
         return smsTemplates.getOrDefault(level, smsTemplates.get("medium"));
+    }
+    
+    public Map<String, String> getEmailTemplates() {
+        return new HashMap<>(emailTemplates);
+    }
+    
+    public void saveEmailTemplates(Map<String, String> templates) {
+        emailTemplates.clear();
+        emailTemplates.putAll(templates);
+    }
+    
+    public String getEmailTemplate(String level) {
+        return emailTemplates.getOrDefault(level, emailTemplates.get("medium"));
     }
 }
