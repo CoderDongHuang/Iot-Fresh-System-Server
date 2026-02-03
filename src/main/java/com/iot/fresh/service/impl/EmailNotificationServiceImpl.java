@@ -152,12 +152,55 @@ public class EmailNotificationServiceImpl {
      * 替换模板变量
      */
     private String replaceTemplateVariables(String template, Alarm alarm) {
+        // 为报警级别和报警类型添加中文解释
+        String levelWithChinese = getLevelChineseExplanation(alarm.getAlarmLevel());
+        String typeWithChinese = getTypeChineseExplanation(alarm.getAlarmType());
+        
+        // 格式化时间，去掉T和多余的位数
+        String formattedTime = formatDateTime(alarm.getCreatedAt());
+        
         return template
             .replace("{device}", alarm.getDeviceName())
-            .replace("{level}", alarm.getAlarmLevel())
+            .replace("{level}", levelWithChinese)
             .replace("{content}", alarm.getMessage())
-            .replace("{time}", alarm.getCreatedAt().toString())
-            .replace("{type}", alarm.getAlarmType());
+            .replace("{time}", formattedTime)
+            .replace("{type}", typeWithChinese);
+    }
+    
+    /**
+     * 格式化日期时间
+     */
+    private String formatDateTime(java.time.LocalDateTime dateTime) {
+        // 使用中文格式：年-月-日 时:分:秒
+        java.time.format.DateTimeFormatter formatter = 
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return dateTime.format(formatter);
+    }
+    
+    /**
+     * 获取报警级别中文解释
+     */
+    private String getLevelChineseExplanation(String level) {
+        switch (level.toLowerCase()) {
+            case "high": return "high(紧急)";
+            case "medium": return "medium(重要)";
+            case "low": return "low(一般)";
+            default: return level;
+        }
+    }
+    
+    /**
+     * 获取报警类型中文解释
+     */
+    private String getTypeChineseExplanation(String type) {
+        switch (type.toLowerCase()) {
+            case "temperature": return "temperature(温度异常)";
+            case "humidity": return "humidity(湿度异常)";
+            case "pressure": return "pressure(压力异常)";
+            case "power": return "power(电源异常)";
+            case "connection": return "connection(连接异常)";
+            default: return type;
+        }
     }
     
     /**

@@ -38,12 +38,12 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
-  # 邮件服务器配置（使用环境变量）
+  # 邮件服务器配置（真实配置，不上传GitHub）
   mail:
-    host: ${MAIL_HOST:smtp.qq.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:your-email@qq.com}
-    password: ${MAIL_PASSWORD:your-authorization-code}
+    host: smtp.qq.com
+    port: 587
+    username: 1218798773@qq.com
+    password: ynwvbbtafzjdbaad
     protocol: smtp
     properties:
       mail:
@@ -52,7 +52,7 @@ spring:
           starttls:
             enable: true
             required: true
-        debug: false
+        debug: true  # 开启调试模式查看详细错误
 
 # MQTT配置
 mqtt:

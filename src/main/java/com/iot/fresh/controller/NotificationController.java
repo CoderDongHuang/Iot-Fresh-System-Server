@@ -42,12 +42,12 @@ public class NotificationController {
                     }
                 }
                 
-                return ResponseEntity.ok(ApiResponse.success("邮件发送成功"));
+                return ResponseEntity.ok(ResponseData.success());
             }
-            return ResponseEntity.badRequest().body(ApiResponse.error("邮箱地址不能为空"));
+            return ResponseEntity.badRequest().body(ResponseData.error("邮箱地址不能为空"));
         } catch (Exception e) {
             log.error("邮件发送失败: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(ApiResponse.error("邮件发送失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ResponseData.error("邮件发送失败: " + e.getMessage()));
         }
     }
     
@@ -75,9 +75,9 @@ public class NotificationController {
         try {
             // 这里简化实现，实际应该根据当前登录用户获取设置
             NotificationSettings settings = settingsService.getUserSettings(1L);
-            return ResponseEntity.ok(ApiResponse.success(settings));
+            return ResponseEntity.ok(ResponseData.success(settings));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("获取通知设置失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ResponseData.error("获取通知设置失败: " + e.getMessage()));
         }
     }
     
@@ -89,9 +89,9 @@ public class NotificationController {
         try {
             // 这里简化实现，实际应该根据当前登录用户保存设置
             settingsService.saveUserSettings(1L, settings);
-            return ResponseEntity.ok(ApiResponse.success("设置保存成功"));
+            return ResponseEntity.ok(ResponseData.success());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("保存通知设置失败: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(ResponseData.error("保存通知设置失败: " + e.getMessage()));
         }
     }
     

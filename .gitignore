@@ -39,6 +39,7 @@ log/
 application-prod.yml
 application-dev.yml
 application-example.yml
+application.yml
 
 # IDE specific
 .vscode/

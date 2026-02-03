@@ -2,6 +2,7 @@ package com.iot.fresh.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.ApiResponse;
+import com.iot.fresh.dto.ResponseData;
 import com.iot.fresh.entity.EmailSettings;
 import com.iot.fresh.entity.EmailTemplates;
 import com.iot.fresh.repository.EmailSettingsRepository;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +37,7 @@ public class EmailController {
      * 获取邮件设置
      */
     @GetMapping("/settings")
-    public ResponseEntity<ApiResponse<EmailSettings>> getEmailSettings() {
+    public ResponseEntity<ResponseData<Map<String, Object>>> getEmailSettings() {
         try {
             EmailSettings settings = emailSettingsRepository.findByUserId(1L);
             if (settings == null) {
@@ -42,10 +45,45 @@ public class EmailController {
                 settings = createDefaultSettings();
                 emailSettingsRepository.save(settings);
             }
-            return ResponseEntity.ok(ApiResponse.success(settings));
+            
+            // 转换为前端期望的格式
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", settings.getId());
+            result.put("userId", settings.getUserId());
+            result.put("enabled", settings.getEnabled());
+            
+            // 将JSON字符串转换为数组
+            ObjectMapper objectMapper = new ObjectMapper();
+            if (settings.getEmailAddresses() != null) {
+                result.put("emailAddresses", objectMapper.readValue(settings.getEmailAddresses(), List.class));
+            } else {
+                result.put("emailAddresses", new ArrayList<>());
+            }
+            
+            if (settings.getNotifyLevels() != null) {
+                result.put("notifyLevels", objectMapper.readValue(settings.getNotifyLevels(), List.class));
+            } else {
+                result.put("notifyLevels", new ArrayList<>());
+            }
+            
+            if (settings.getQuietHours() != null) {
+                result.put("quietHours", objectMapper.readValue(settings.getQuietHours(), List.class));
+            } else {
+                result.put("quietHours", new ArrayList<>());
+            }
+            
+            result.put("pushFrequency", settings.getPushFrequency());
+            result.put("createdAt", settings.getCreatedAt() != null ? settings.getCreatedAt().toString() : null);
+            result.put("updatedAt", settings.getUpdatedAt() != null ? settings.getUpdatedAt().toString() : null);
+            
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.success(result));
         } catch (Exception e) {
             log.error("获取邮件设置失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("获取邮件设置失败"));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.error("获取邮件设置失败"));
         }
     }
     
@@ -95,10 +133,14 @@ public class EmailController {
             
             emailSettingsRepository.save(settings);
             log.info("邮件设置保存成功");
-            return ResponseEntity.ok(ApiResponse.success("设置保存成功", null));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ApiResponse.success("设置保存成功", null));
         } catch (Exception e) {
             log.error("保存邮件设置失败: {}", e.getMessage(), e);
-            return ResponseEntity.ok(ApiResponse.error("保存邮件设置失败: " + e.getMessage()));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ApiResponse.error("保存邮件设置失败: " + e.getMessage()));
         }
     }
     
@@ -106,7 +148,7 @@ public class EmailController {
      * 获取邮件模板
      */
     @GetMapping("/templates")
-    public ResponseEntity<ApiResponse<List<EmailTemplates>>> getEmailTemplates() {
+    public ResponseEntity<ResponseData<List<EmailTemplates>>> getEmailTemplates() {
         try {
             List<EmailTemplates> templates = emailTemplatesRepository.findAll();
             if (templates.isEmpty()) {
@@ -114,10 +156,14 @@ public class EmailController {
                 templates = createDefaultTemplates();
                 emailTemplatesRepository.saveAll(templates);
             }
-            return ResponseEntity.ok(ApiResponse.success(templates));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.success(templates));
         } catch (Exception e) {
             log.error("获取邮件模板失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("获取邮件模板失败"));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.error("获取邮件模板失败"));
         }
     }
     
@@ -125,7 +171,7 @@ public class EmailController {
      * 保存邮件模板
      */
     @PostMapping("/templates")
-    public ResponseEntity<ApiResponse<Void>> saveTemplates(@RequestBody Object requestData) {
+    public ResponseEntity<ResponseData<Void>> saveTemplates(@RequestBody Object requestData) {
         try {
             log.info("收到保存邮件模板请求，数据类型: {}, 数据内容: {}", 
                 requestData != null ? requestData.getClass().getSimpleName() : "null", 
@@ -133,12 +179,12 @@ public class EmailController {
             
             // 检查数据类型
             if (requestData == null) {
-                return ResponseEntity.ok(ApiResponse.error("请求数据不能为空"));
+                return ResponseEntity.ok(ResponseData.error("请求数据不能为空"));
             }
             
             // 尝试转换为Map
             if (!(requestData instanceof Map)) {
-                return ResponseEntity.ok(ApiResponse.error("请求数据格式不正确，期望Map格式"));
+                return ResponseEntity.ok(ResponseData.error("请求数据格式不正确，期望Map格式"));
             }
             
             Map<?, ?> templatesMap = (Map<?, ?>) requestData;
@@ -176,10 +222,14 @@ public class EmailController {
             }
             
             log.info("邮件模板保存成功");
-            return ResponseEntity.ok(ApiResponse.success("模板保存成功", null));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.success());
         } catch (Exception e) {
             log.error("保存邮件模板失败: {}", e.getMessage(), e);
-            return ResponseEntity.ok(ApiResponse.error("保存邮件模板失败: " + e.getMessage()));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.error("保存邮件模板失败: " + e.getMessage()));
         }
     }
     
@@ -187,13 +237,17 @@ public class EmailController {
      * 发送自定义邮件
      */
     @PostMapping("/send")
-    public ResponseEntity<ApiResponse<Void>> sendEmail(@RequestBody SendEmailRequest request) {
+    public ResponseEntity<ResponseData<Void>> sendEmail(@RequestBody SendEmailRequest request) {
         try {
             log.info("收到发送邮件请求: {}", request);
-            return ResponseEntity.ok(ApiResponse.success("邮件发送成功", null));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.success());
         } catch (Exception e) {
             log.error("发送邮件失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("发送邮件失败"));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.error("发送邮件失败"));
         }
     }
     
@@ -201,17 +255,23 @@ public class EmailController {
      * 测试邮件发送
      */
     @PostMapping("/test")
-    public ResponseEntity<ApiResponse<Void>> testEmail(@RequestBody TestEmailRequest request) {
+    public ResponseEntity<ResponseData<Void>> testEmail(@RequestBody TestEmailRequest request) {
         try {
             boolean success = emailNotificationService.sendTestEmail(request.getEmailAddress());
             if (success) {
-                return ResponseEntity.ok(ApiResponse.success("测试邮件发送成功", null));
+                return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                    .body(ResponseData.success());
             } else {
-                return ResponseEntity.ok(ApiResponse.error("测试邮件发送失败"));
+                return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                    .body(ResponseData.error("测试邮件发送失败"));
             }
         } catch (Exception e) {
             log.error("测试邮件发送失败: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("测试邮件发送失败"));
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON_UTF8)
+                .body(ResponseData.error("测试邮件发送失败"));
         }
     }
     
