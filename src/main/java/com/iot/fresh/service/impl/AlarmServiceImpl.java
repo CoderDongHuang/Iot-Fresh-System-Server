@@ -14,6 +14,9 @@ import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.AlarmPushService;
 import com.iot.fresh.service.AlarmService;
 import com.iot.fresh.service.impl.EmailNotificationServiceImpl;
+import com.iot.fresh.service.impl.DingTalkService;
+import com.iot.fresh.entity.DingTalkSettings;
+import com.iot.fresh.repository.DingTalkSettingsRepository;
 import com.iot.fresh.websocket.WebSocketEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -48,6 +51,12 @@ public class AlarmServiceImpl implements AlarmService {
 
     @Autowired
     private EmailNotificationServiceImpl emailNotificationService;
+
+    @Autowired
+    private DingTalkService dingTalkService;
+
+    @Autowired
+    private DingTalkSettingsRepository dingTalkSettingsRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -455,6 +464,14 @@ public class AlarmServiceImpl implements AlarmService {
             System.err.println("发送邮件通知失败: " + e.getMessage());
         }
         
+        // 发送钉钉通知
+        try {
+            sendDingTalkNotification(savedAlarm);
+            System.out.println("钉钉通知已发送");
+        } catch (Exception e) {
+            System.err.println("发送钉钉通知失败: " + e.getMessage());
+        }
+        
         // 推送更新后的报警统计数据
         pushUpdatedStatistics();
     }
@@ -544,5 +561,105 @@ public class AlarmServiceImpl implements AlarmService {
         alarmHistoryRepository.save(history);
         
         return ApiResponse.success("处理记录添加成功");
+    }
+
+    /**
+     * 发送钉钉通知
+     */
+    private void sendDingTalkNotification(Alarm alarm) {
+        try {
+            // 获取钉钉设置
+            DingTalkSettings settings = dingTalkSettingsRepository.findByUserId(1L);
+            if (settings == null || !settings.getEnabled()) {
+                System.out.println("钉钉通知未启用或设置不存在");
+                return;
+            }
+            
+            // 检查报警级别
+            if (!isDingTalkNotifyLevelEnabled(settings, alarm.getAlarmLevel())) {
+                System.out.println("报警级别 " + alarm.getAlarmLevel() + " 未启用钉钉通知");
+                return;
+            }
+            
+            // 检查免打扰时段
+            if (isDingTalkInQuietHours(settings)) {
+                System.out.println("当前处于免打扰时段，不发送钉钉通知");
+                return;
+            }
+            
+            // 发送钉钉消息
+            String alarmTime = alarm.getCreatedAt() != null ? 
+                alarm.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) :
+                LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            
+            boolean success = dingTalkService.sendAlarmMessage(
+                settings.getWebhookUrl(), 
+                settings.getSecret(), 
+                alarm.getDeviceName(), 
+                alarm.getAlarmLevel(), 
+                alarm.getMessage(), 
+                alarmTime
+            );
+            
+            if (success) {
+                System.out.println("钉钉通知发送成功");
+            } else {
+                System.out.println("钉钉通知发送失败");
+            }
+        } catch (Exception e) {
+            System.err.println("发送钉钉通知异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 检查钉钉报警级别是否启用
+     */
+    private boolean isDingTalkNotifyLevelEnabled(DingTalkSettings settings, String alarmLevel) {
+        try {
+            if (settings.getNotifyLevels() == null) {
+                return true; // 默认所有级别都启用
+            }
+            
+            List<String> enabledLevels = objectMapper.readValue(settings.getNotifyLevels(), List.class);
+            return enabledLevels.contains(alarmLevel);
+        } catch (Exception e) {
+            System.err.println("检查钉钉报警级别失败: " + e.getMessage());
+            return true; // 出错时默认启用
+        }
+    }
+
+    /**
+     * 检查钉钉是否处于免打扰时段
+     */
+    private boolean isDingTalkInQuietHours(DingTalkSettings settings) {
+        try {
+            if (settings.getQuietHours() == null) {
+                return false; // 默认不启用免打扰
+            }
+            
+            List<String> quietHours = objectMapper.readValue(settings.getQuietHours(), List.class);
+            if (quietHours.size() < 2) {
+                return false;
+            }
+            
+            String startTime = quietHours.get(0);
+            String endTime = quietHours.get(1);
+            
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime start = LocalDateTime.of(now.toLocalDate(), 
+                java.time.LocalTime.parse(startTime));
+            LocalDateTime end = LocalDateTime.of(now.toLocalDate(), 
+                java.time.LocalTime.parse(endTime));
+            
+            // 处理跨天的情况
+            if (end.isBefore(start)) {
+                end = end.plusDays(1);
+            }
+            
+            return now.isAfter(start) && now.isBefore(end);
+        } catch (Exception e) {
+            System.err.println("检查钉钉免打扰时段失败: " + e.getMessage());
+            return false; // 出错时默认不启用免打扰
+        }
     }
 }

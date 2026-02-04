@@ -42,8 +42,8 @@ spring:
   mail:
     host: smtp.qq.com
     port: 587
-    username: 你自己的邮箱
-    password: 你自己的邮箱授权码
+    username: 1218798773@qq.com
+    password: 
     protocol: smtp
     properties:
       mail:
@@ -65,6 +65,12 @@ mqtt:
 email:
   enabled: true  # 是否启用邮件通知
 
+# 钉钉机器人配置
+dingtalk:
+  enabled: true  # 是否启用钉钉通知
+  timeout: 5000  # 请求超时时间(毫秒)
+  retry-count: 3 # 重试次数
+  
 # WebSocket配置
 websocket:
   enabled: true
