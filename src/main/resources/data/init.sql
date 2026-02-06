@@ -427,9 +427,9 @@ INSERT INTO email_settings (user_id, enabled, email_addresses, notify_levels, qu
 
 -- 插入默认邮件模板
 INSERT INTO email_templates (template_type, template_subject, template_content) VALUES
-('high', '【Iot生鲜品储运系统】🚨 紧急报警通知', '🚨 紧急报警通知！<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>⚠️ 请立即处理！'),
-('medium', '【Iot生鲜品储运系统】⚠️ 重要报警通知', '⚠️ 重要报警通知<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>🔔 请及时处理。'),
-('low', '【Iot生鲜品储运系统】ℹ️ 一般报警通知', 'ℹ️ 一般报警通知<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>👀 请关注。');
+('high', '【物联网生鲜品储运系统】🚨 紧急报警通知', '🚨 紧急报警通知！<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>⚠️ 请立即处理！'),
+('medium', '【物联网生鲜品储运系统】⚠️ 重要报警通知', '⚠️ 重要报警通知<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>🔔 请及时处理。'),
+('low', '【物联网生鲜品储运系统】ℹ️ 一般报警通知', 'ℹ️ 一般报警通知<br><br>设备：{device}<br>报警级别：{level}<br>报警内容：{content}<br>报警时间：{time}<br>报警类型：{type}<br><br>👀 请关注。');
 
 -- 创建钉钉设置表
 CREATE TABLE IF NOT EXISTS dingtalk_settings (

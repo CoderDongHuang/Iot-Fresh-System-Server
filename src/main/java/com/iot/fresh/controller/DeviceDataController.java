@@ -92,9 +92,9 @@ public class DeviceDataController {
                 endTime = now;
             }
         } else {
-            // 如果没有指定timeRange，使用默认的24小时
+            // 如果没有指定timeRange，使用默认的30天
             if (startTime == null) {
-                startTime = LocalDateTime.now().minusHours(24);
+                startTime = LocalDateTime.now().minusDays(30);
             }
             if (endTime == null) {
                 endTime = LocalDateTime.now();
