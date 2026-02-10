@@ -38,9 +38,9 @@ public class DeviceDataServiceImpl implements DeviceDataService {
             Map<String, Object> item = new HashMap<>();
             // 使用ISO 8601格式的时间字符串
             item.put("time", data.getCreatedAt().toString());
-            // 优先使用lxin字段，如果没有则使用light字段
-            Integer lightValue = data.getLxin() != null ? data.getLxin() : data.getLight();
-            item.put("value", lightValue != null ? lightValue : 0);
+            // 使用lxin字段作为光照数据
+            Integer lightValue = data.getLxin() != null ? data.getLxin() : 0;
+            item.put("value", lightValue);
             result.add(item);
         }
 

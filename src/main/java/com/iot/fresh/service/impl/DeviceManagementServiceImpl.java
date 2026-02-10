@@ -46,10 +46,10 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         if (keyword != null && !keyword.isEmpty()) {
             if (status != null) {
                 // 在设备名称或VID中搜索，并按状态过滤
-                devicePage = deviceRepository.findByDeviceNameContainingOrVidContainingAndStatus(keyword, status, pageable);
+                devicePage = deviceRepository.findByDeviceNameContainingOrVidContainingAndStatus(keyword, keyword, status, pageable);
             } else {
                 // 在设备名称或VID中搜索，不按状态过滤
-                devicePage = deviceRepository.findByDeviceNameContainingOrVidContaining(keyword, pageable);
+                devicePage = deviceRepository.findByDeviceNameContainingOrVidContaining(keyword, keyword, pageable);
             }
         } else {
             if (status != null) {
@@ -308,14 +308,12 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
             DeviceCurrentDataDto currentData = new DeviceCurrentDataDto();
             currentData.setTin(latestData.getTin());
             currentData.setTout(latestData.getTout());
-            currentData.setLxin(latestData.getLxin());
-            currentData.setVStatus(latestData.getVstatus());
-            currentData.setBattery(latestData.getBattery());
-            currentData.setBrightness(latestData.getBrightness());
-            currentData.setSpeedM1(latestData.getSpeedM1());
-            currentData.setSpeedM2(latestData.getSpeedM2());
             currentData.setHin(latestData.getHin());
             currentData.setHout(latestData.getHout());
+            currentData.setLxin(latestData.getLxin());
+            currentData.setLxout(latestData.getLxout());
+            currentData.setBrightness(latestData.getBrightness());
+            currentData.setVStatus(latestData.getVstatus());
             
             return currentData;
         }

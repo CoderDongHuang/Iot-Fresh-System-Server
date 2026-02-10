@@ -11,15 +11,15 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/device")
+@RequestMapping("/api/device/management")
 public class DeviceManagementController {
 
     @Autowired
     private DeviceManagementService deviceManagementService;
 
-    // 1. 设备列表接口
+    // 1. 设备列表接口 - 返回前端期望的标准格式
     @GetMapping("/list")
-    public ApiResponse<PaginatedResponse<DeviceDto>> getDeviceList(
+    public ApiResponse<Map<String, Object>> getDeviceList(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
@@ -35,7 +35,7 @@ public class DeviceManagementController {
                 case "offline":
                     statusInt = 0;
                     break;
-                case "fault":
+                case "error":
                     statusInt = 2;
                     break;
                 case "maintenance":
@@ -52,7 +52,20 @@ public class DeviceManagementController {
             }
         }
         
-        return deviceManagementService.getDeviceList(pageNum, pageSize, keyword, statusInt);
+        // 调用服务层获取数据
+        ApiResponse<PaginatedResponse<DeviceDto>> response = deviceManagementService.getDeviceList(pageNum, pageSize, keyword, statusInt);
+        
+        // 转换为前端期望的格式
+        if (response.isSuccess() && response.getData() != null) {
+            PaginatedResponse<DeviceDto> paginatedData = response.getData();
+            Map<String, Object> frontendData = new java.util.HashMap<>();
+            frontendData.put("list", paginatedData.getList());
+            frontendData.put("total", paginatedData.getTotal());
+            
+            return ApiResponse.success("操作成功", frontendData);
+        } else {
+            return ApiResponse.error(response.getCode(), response.getMessage());
+        }
     }
 
     // 2. 设备详情接口

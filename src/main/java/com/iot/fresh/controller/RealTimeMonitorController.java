@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * @since 2026
  */
 @RestController
-@RequestMapping("/api/device")
+@RequestMapping("/api/device/monitor")
 public class RealTimeMonitorController {
 
     @Autowired
@@ -98,13 +98,13 @@ public class RealTimeMonitorController {
                 DeviceData latestData = dataService.getLatestDeviceData(device.getVid());
                 
                 if (latestData != null) {
-                    // 添加传感器数据
                     deviceDataMap.put("tin", latestData.getTin());
                     deviceDataMap.put("tout", latestData.getTout());
+                    deviceDataMap.put("hin", latestData.getHin());
+                    deviceDataMap.put("hout", latestData.getHout());
                     deviceDataMap.put("lxin", latestData.getLxin());
+                    deviceDataMap.put("lxout", latestData.getLxout());
                     deviceDataMap.put("brightness", latestData.getBrightness());
-                    deviceDataMap.put("speedM1", latestData.getSpeedM1());
-                    deviceDataMap.put("speedM2", latestData.getSpeedM2());
                     deviceDataMap.put("vStatus", latestData.getVstatus());
                     
                     // 格式化时间戳为ISO 8601字符串格式

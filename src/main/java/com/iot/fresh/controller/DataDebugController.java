@@ -19,7 +19,7 @@ import java.util.Map;
  * @since 2026
  */
 @RestController
-@RequestMapping("/api/debug")
+@RequestMapping("/api/debug/data")
 public class DataDebugController {
 
     @Autowired
