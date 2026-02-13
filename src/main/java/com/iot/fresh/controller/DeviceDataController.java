@@ -140,8 +140,7 @@ public class DeviceDataController {
                 
                 // 添加表格所需的额外字段
                 if (data.getVstatus() != null) item.put("vStatus", data.getVstatus());
-                if (data.getBattery() != null) item.put("battery", data.getBattery());
-                if (data.getLight() != null) item.put("light", data.getLight());
+                // battery和light字段已移除
                 
                 return item;
             })

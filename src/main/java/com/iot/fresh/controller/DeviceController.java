@@ -69,6 +69,96 @@ public class DeviceController {
     }
     
     /**
+     * 获取设备详情信息 - 返回前端期望的详细格式
+     * GET http://localhost:8080/api/device/detail/{vid}
+     */
+    @GetMapping("/detail/{vid}")
+    public ApiResponse<Map<String, Object>> getDeviceDetail(@PathVariable String vid) {
+        try {
+            log.info("接收到获取设备详情请求 - VID: {}", vid);
+            
+            ApiResponse response = deviceService.getDeviceByVid(vid);
+            
+            if (!response.isSuccess()) {
+                return ApiResponse.error("设备不存在: " + vid);
+            }
+            
+            DeviceDto device = (DeviceDto) response.getData();
+            
+            // 转换为前端期望的下划线格式
+            Map<String, Object> deviceDetail = new java.util.HashMap<>();
+            deviceDetail.put("vid", device.getVid());
+            deviceDetail.put("device_name", device.getDeviceName());
+            deviceDetail.put("device_type", device.getDeviceType());
+            deviceDetail.put("status", device.getStatus());
+            deviceDetail.put("location", device.getLocation());
+            deviceDetail.put("description", device.getDescription());
+            deviceDetail.put("manufacturer", device.getManufacturer());
+            deviceDetail.put("model", device.getModel());
+            deviceDetail.put("firmware_version", device.getFirmwareVersion());
+            
+            // 添加IP地址和MAC地址（如果存在）
+            if (device.getContactPhone() != null) {
+                deviceDetail.put("ip_address", device.getContactPhone());
+            } else {
+                deviceDetail.put("ip_address", null);
+            }
+            
+            // MAC地址暂时设置为null，如果需要可以从其他字段获取
+            deviceDetail.put("mac_address", null);
+            
+            if (device.getLastHeartbeat() != null) {
+                deviceDetail.put("last_online_time", device.getLastHeartbeat().toString());
+            } else {
+                deviceDetail.put("last_online_time", null);
+            }
+            
+            if (device.getCreatedAt() != null) {
+                deviceDetail.put("created_at", device.getCreatedAt().toString());
+            } else {
+                deviceDetail.put("created_at", null);
+            }
+            
+            log.info("获取设备详情请求处理完成 - VID: {}", vid);
+            return ApiResponse.success("操作成功", deviceDetail);
+            
+        } catch (Exception e) {
+            log.error("处理获取设备详情请求时发生错误 - VID: {}, 错误: {}", vid, e.getMessage(), e);
+            return ApiResponse.error("处理请求时发生错误: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取设备历史数据 - 前端期望的路径格式
+     * GET http://localhost:8080/api/device/{vid}/history-data
+     */
+    @GetMapping("/{vid}/history-data")
+    public ApiResponse<com.iot.fresh.dto.PaginatedResponse<com.iot.fresh.dto.DeviceDataDto>> getDeviceHistoryData(@PathVariable String vid,
+                                                                       @RequestParam(defaultValue = "1") Integer pageNum,
+                                                                       @RequestParam(defaultValue = "20") Integer pageSize,
+                                                                       @RequestParam(required = false) String dataType) {
+        try {
+            log.info("接收到获取设备历史数据请求 - VID: {}, pageNum: {}, pageSize: {}, dataType: {}", 
+                    vid, pageNum, pageSize, dataType);
+            
+            // 设置默认时间范围（最近7天）
+            java.time.LocalDateTime endTime = java.time.LocalDateTime.now();
+            java.time.LocalDateTime startTime = endTime.minusDays(7);
+            
+            // 调用数据服务获取历史数据
+            ApiResponse<com.iot.fresh.dto.PaginatedResponse<com.iot.fresh.dto.DeviceDataDto>> response = 
+                dataService.getDeviceHistoryDataWithPagination(vid, dataType, startTime, endTime, pageNum, pageSize);
+            
+            log.info("获取设备历史数据请求处理完成 - VID: {}, 结果: {}", vid, response.isSuccess());
+            return response;
+            
+        } catch (Exception e) {
+            log.error("处理获取设备历史数据请求时发生错误 - VID: {}, 错误: {}", vid, e.getMessage(), e);
+            return ApiResponse.error("处理请求时发生错误: " + e.getMessage());
+        }
+    }
+    
+    /**
      * 获取所有设备列表 - 返回前端期望的标准格式
      * GET http://localhost:8080/api/device/list
      */
@@ -92,6 +182,9 @@ public class DeviceController {
                     deviceMap.put("device_type", device.getDeviceType());
                     deviceMap.put("status", device.getStatus());
                     deviceMap.put("location", device.getLocation());
+                    deviceMap.put("manufacturer", device.getManufacturer());
+                    deviceMap.put("model", device.getModel());
+                    deviceMap.put("firmware_version", device.getFirmwareVersion());
                     if (device.getLastHeartbeat() != null) {
                         deviceMap.put("last_online_time", device.getLastHeartbeat().toString());
                     } else {
@@ -315,10 +408,8 @@ public class DeviceController {
             map.put("hin", deviceDataDto.getHin());
             map.put("hout", deviceDataDto.getHout());
             map.put("lxin", deviceDataDto.getLxin());
-            map.put("light", deviceDataDto.getLight());
-            map.put("pid", deviceDataDto.getPid());
+            map.put("lxout", deviceDataDto.getLxout());
             map.put("vStatus", deviceDataDto.getVstatus());
-            map.put("battery", deviceDataDto.getBattery());
             map.put("brightness", deviceDataDto.getBrightness());
             map.put("speedM1", deviceDataDto.getSpeedM1());
             map.put("speedM2", deviceDataDto.getSpeedM2());

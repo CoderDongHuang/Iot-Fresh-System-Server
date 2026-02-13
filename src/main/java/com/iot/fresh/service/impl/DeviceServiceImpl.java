@@ -252,6 +252,9 @@ public class DeviceServiceImpl implements DeviceService {
         dto.setLocation(device.getLocation());
         dto.setContactPhone(device.getContactPhone());
         dto.setDescription(device.getDescription());
+        dto.setManufacturer(device.getManufacturer());
+        dto.setModel(device.getModel());
+        dto.setFirmwareVersion(device.getFirmwareVersion());
         dto.setCreatedAt(device.getCreatedAt());
         dto.setUpdatedAt(device.getUpdatedAt());
         dto.setLastHeartbeat(device.getLastHeartbeat());

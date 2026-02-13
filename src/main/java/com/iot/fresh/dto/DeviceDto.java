@@ -12,6 +12,9 @@ public class DeviceDto {
     private String location;
     private String contactPhone;
     private String description;
+    private String manufacturer;
+    private String model;
+    private String firmwareVersion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastHeartbeat;
@@ -54,6 +57,15 @@ public class DeviceDto {
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    
+    public String getManufacturer() { return manufacturer; }
+    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
+    
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
+    
+    public String getFirmwareVersion() { return firmwareVersion; }
+    public void setFirmwareVersion(String firmwareVersion) { this.firmwareVersion = firmwareVersion; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

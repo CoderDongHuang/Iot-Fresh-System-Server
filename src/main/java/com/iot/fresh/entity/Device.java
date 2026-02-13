@@ -32,6 +32,15 @@ public class Device {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     
+    @Column(name = "manufacturer", length = 100)
+    private String manufacturer;
+    
+    @Column(name = "model", length = 100)
+    private String model;
+    
+    @Column(name = "firmware_version", length = 50)
+    private String firmwareVersion;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -82,6 +91,15 @@ public class Device {
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    
+    public String getManufacturer() { return manufacturer; }
+    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
+    
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
+    
+    public String getFirmwareVersion() { return firmwareVersion; }
+    public void setFirmwareVersion(String firmwareVersion) { this.firmwareVersion = firmwareVersion; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

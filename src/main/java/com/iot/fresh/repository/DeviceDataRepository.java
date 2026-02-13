@@ -24,24 +24,24 @@ public interface DeviceDataRepository extends JpaRepository<DeviceData, Long> {
     
     DeviceData findTopByVidOrderByCreatedAtDesc(String vid);
     
-    @Query("SELECT d FROM DeviceData d WHERE d.vid = :vid AND d.createdAt BETWEEN :startTime AND :endTime ORDER BY d.createdAt DESC")
+    @Query("SELECT d FROM DeviceData d WHERE d.vid = :vid AND d.timestamp BETWEEN :startTime AND :endTime ORDER BY d.timestamp DESC")
     org.springframework.data.domain.Page<DeviceData> findByVidAndTimeRangeWithPagination(
             @Param("vid") String vid, 
             @Param("startTime") LocalDateTime startTime, 
             @Param("endTime") LocalDateTime endTime, 
             Pageable pageable);
     
-    @Query("SELECT d FROM DeviceData d WHERE d.createdAt BETWEEN :startTime AND :endTime ORDER BY d.createdAt DESC")
+    @Query("SELECT d FROM DeviceData d WHERE d.timestamp BETWEEN :startTime AND :endTime ORDER BY d.timestamp DESC")
     org.springframework.data.domain.Page<DeviceData> findByTimeRangeWithPagination(
             @Param("startTime") LocalDateTime startTime, 
             @Param("endTime") LocalDateTime endTime, 
             Pageable pageable);
     
-    @Query("SELECT d FROM DeviceData d WHERE d.createdAt BETWEEN :startTime AND :endTime ORDER BY d.createdAt DESC")
+    @Query("SELECT d FROM DeviceData d WHERE d.timestamp BETWEEN :startTime AND :endTime ORDER BY d.timestamp DESC")
     List<DeviceData> findByTimeRangeWithNoPagination(@Param("startTime") LocalDateTime startTime, 
                                                     @Param("endTime") LocalDateTime endTime);
     
-    @Query("SELECT d FROM DeviceData d WHERE d.vid = :vid AND d.createdAt BETWEEN :startTime AND :endTime ORDER BY d.createdAt DESC")
+    @Query("SELECT d FROM DeviceData d WHERE d.vid = :vid AND d.timestamp BETWEEN :startTime AND :endTime ORDER BY d.timestamp DESC")
     Page<DeviceData> findByVidAndCreatedAtBetween(@Param("vid") String vid, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime, Pageable pageable);
 
     @Query("SELECT DISTINCT d.vid FROM DeviceData d")

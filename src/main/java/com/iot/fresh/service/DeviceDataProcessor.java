@@ -62,11 +62,7 @@ public class DeviceDataProcessor {
             }
         }
 
-        if (deviceDataDto.getBattery() != null && deviceDataDto.getBattery() < 20) {
-            // 电池电量低报警
-            System.out.println("设备 " + vid + " 电池电量低: " + deviceDataDto.getBattery() + "%");
-            createAlarm(vid, "battery", "medium", "电池电量低: " + deviceDataDto.getBattery() + "%");
-        }
+        // battery字段已移除，跳过电池电量检查
     }
 
     /**

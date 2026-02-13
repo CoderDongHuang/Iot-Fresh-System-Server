@@ -35,20 +35,14 @@ public class DataServiceImpl implements DataService {
     public ApiResponse<DeviceDataDto> saveDeviceData(DeviceDataDto deviceDataDto) {
         DeviceData deviceData = new DeviceData();
         deviceData.setVid(deviceDataDto.getVid());
-        deviceData.setDeviceName(deviceDataDto.getDeviceName());
-        deviceData.setDeviceType(deviceDataDto.getDeviceType());
         deviceData.setTin(deviceDataDto.getTin());
         deviceData.setTout(deviceDataDto.getTout());
         deviceData.setHin(deviceDataDto.getHin());
         deviceData.setHout(deviceDataDto.getHout());
         deviceData.setLxin(deviceDataDto.getLxin());
-        deviceData.setLight(deviceDataDto.getLight());
-        deviceData.setPid(deviceDataDto.getPid());
+        deviceData.setLxout(deviceDataDto.getLxout());
         deviceData.setVstatus(deviceDataDto.getVstatus());
-        deviceData.setBattery(deviceDataDto.getBattery());
         deviceData.setBrightness(deviceDataDto.getBrightness());
-        deviceData.setSpeedM1(deviceDataDto.getSpeedM1());
-        deviceData.setSpeedM2(deviceDataDto.getSpeedM2());
         deviceData.setTimestamp(deviceDataDto.getTimestamp()); // 使用转换后的时间戳
 
         DeviceData savedData = deviceDataRepository.save(deviceData);
@@ -100,11 +94,8 @@ public class DataServiceImpl implements DataService {
                         ", hin: " + deviceDataDto.getHin() + 
                         ", hout: " + deviceDataDto.getHout() + 
                         ", lxin: " + deviceDataDto.getLxin() + 
-                        ", light: " + deviceDataDto.getLight() + 
-                        ", battery: " + deviceDataDto.getBattery() + 
-                        ", brightness: " + deviceDataDto.getBrightness() + 
-                        ", speedM1: " + deviceDataDto.getSpeedM1() + 
-                        ", speedM2: " + deviceDataDto.getSpeedM2());
+                        ", lxout: " + deviceDataDto.getLxout() + 
+                        ", brightness: " + deviceDataDto.getBrightness());
                 }
             }
         } catch (Exception e) {
@@ -161,11 +152,7 @@ public class DataServiceImpl implements DataService {
             
             // 简单解析JSON字符串
             if (json.contains("\"deviceType\"")) {
-                int start = json.indexOf("\"deviceType\":\"") + 14;
-                int end = json.indexOf("\"", start);
-                if (start > 13 && end > start) {
-                    dto.setDeviceType(json.substring(start, end));
-                }
+                // deviceType字段已移除，跳过解析
             }
             
             if (json.contains("\"tin\"")) {
@@ -210,11 +197,7 @@ public class DataServiceImpl implements DataService {
             }
             
             if (json.contains("\"pid\"")) {
-                int start = json.indexOf("\"pid\":\"") + 7;
-                int end = json.indexOf("\"", start);
-                if (start > 6 && end > start) {
-                    dto.setPid(json.substring(start, end));
-                }
+                // pid字段已移除，跳过解析
             }
             
             if (json.contains("\"vstatus\"")) {
@@ -230,11 +213,7 @@ public class DataServiceImpl implements DataService {
             if (json.contains("\"battery\"")) {
                 int start = json.indexOf("\"battery\":") + 10;
                 int end = json.indexOf(",", start);
-                if (end == -1) end = json.indexOf("}", start);
-                if (start > 9 && end > start) {
-                    String value = json.substring(start, end).trim();
-                    dto.setBattery(Integer.parseInt(value));
-                }
+                // battery字段已移除，跳过解析
             }
             
             if (json.contains("\"brightness\"")) {
@@ -279,26 +258,39 @@ public class DataServiceImpl implements DataService {
         DeviceDataDto dto = new DeviceDataDto();
         dto.setId(deviceData.getId());
         dto.setVid(deviceData.getVid());
-        dto.setDeviceName(deviceData.getDeviceName());
-        dto.setDeviceType(deviceData.getDeviceType());
+        
+        // 温度数据
         dto.setTin(deviceData.getTin());
         dto.setTout(deviceData.getTout());
+        
+        // 湿度数据
         dto.setHin(deviceData.getHin());
         dto.setHout(deviceData.getHout());
+        
+        // 光照数据
         dto.setLxin(deviceData.getLxin());
-        dto.setLight(deviceData.getLight());
-        dto.setPid(deviceData.getPid());
-        dto.setVstatus(deviceData.getVstatus());
-        dto.setBattery(deviceData.getBattery());
+        dto.setLxout(deviceData.getLxout());
+        
+        // 亮度调节
         dto.setBrightness(deviceData.getBrightness());
-        dto.setSpeedM1(deviceData.getSpeedM1());
-        dto.setSpeedM2(deviceData.getSpeedM2());
-        // 设置转换后的时间戳，使用设备数据的时间戳或创建时间
+        
+        // 设备状态 - 前端期望vStatus字段名
+        dto.setVstatus(deviceData.getVstatus());
+        
+        // 风机速度字段 - 数据库中不存在，设为null
+        dto.setSpeedM1(null);
+        dto.setSpeedM2(null);
+        
+        // 时间戳 - 使用设备数据的时间戳或创建时间
         if (deviceData.getTimestamp() != null) {
             dto.setTimestamp(deviceData.getTimestamp());
         } else {
             dto.setTimestamp(deviceData.getCreatedAt());
         }
+        
+        // 创建时间
+        dto.setCreatedAt(deviceData.getCreatedAt());
+        
         return dto;
     }
     
@@ -320,8 +312,8 @@ public class DataServiceImpl implements DataService {
             Map<String, Object> item = new java.util.HashMap<>();
             // 使用ISO 8601格式的时间字符串
             item.put("timestamp", data.getCreatedAt().toString());
-            // 优先使用lxin字段，如果没有则使用light字段
-            Integer lightValue = data.getLxin() != null ? data.getLxin() : data.getLight();
+            // 使用lxin字段作为光照值
+            Integer lightValue = data.getLxin();
             item.put("value", lightValue != null ? lightValue : 0);
             return item;
         }).collect(java.util.stream.Collectors.toList());
@@ -407,7 +399,7 @@ public class DataServiceImpl implements DataService {
 
          com.iot.fresh.dto.PaginatedResponse<DeviceDataDto> paginatedResponse = new com.iot.fresh.dto.PaginatedResponse<>(
                  pagedDtoList,
-                 (long) totalFiltered, // 总数量
+                 deviceDataPage.getTotalElements(), // 总数量
                  pageNum,              // 页码
                  pageSize              // 每页数量
          );
@@ -434,14 +426,14 @@ public class DataServiceImpl implements DataService {
                 return data.getHin() != null || data.getHout() != null;
             case "light":
             case "illumination":
-                return data.getLxin() != null || data.getLight() != null;
+                return data.getLxin() != null || data.getLxout() != null;
             case "battery":
-                return data.getBattery() != null;
+                return false; // battery字段已移除
             case "status":
                 return data.getVstatus() != null;
             case "speed":
             case "fan_speed":
-                return data.getSpeedM1() != null || data.getSpeedM2() != null;
+                return false; // speedM1和speedM2字段已移除
             case "brightness":
                 return data.getBrightness() != null;
             default:
@@ -540,14 +532,14 @@ public class DataServiceImpl implements DataService {
         double avgHumidity = deviceDataList.stream()
                 .filter(data -> data.getHin() != null || data.getHout() != null)
                 .mapToDouble(data -> {
-                    Double internalHumidity = data.getHin();
-                    Double externalHumidity = data.getHout();
+                    Integer internalHumidity = data.getHin();
+                    Integer externalHumidity = data.getHout();
                     if (internalHumidity != null && externalHumidity != null) {
                         return (internalHumidity + externalHumidity) / 2.0;
                     } else if (internalHumidity != null) {
-                        return internalHumidity;
+                        return internalHumidity.doubleValue();
                     } else if (externalHumidity != null) {
-                        return externalHumidity;
+                        return externalHumidity.doubleValue();
                     } else {
                         return 0.0;
                     }
@@ -575,8 +567,7 @@ public class DataServiceImpl implements DataService {
         if (vid != null && !vid.trim().isEmpty()) {
             // 如果是特定设备，则添加该设备的详细统计
             Map<String, Object> deviceDetail = new java.util.HashMap<>();
-            deviceDetail.put("deviceName", deviceDataList.get(0).getDeviceName() != null ? 
-                             deviceDataList.get(0).getDeviceName() : "Unknown Device");
+            deviceDetail.put("deviceName", "Unknown Device"); // deviceName字段已移除
             deviceDetail.put("vid", vid);
             deviceDetail.put("avgTemp", avgTemp);
             deviceDetail.put("maxTemp", maxTemp);
@@ -597,14 +588,10 @@ public class DataServiceImpl implements DataService {
                 List<DeviceData> deviceList = entry.getValue();
                 
                 // 查找设备名称
-                String deviceName = deviceList.get(0).getDeviceName();
-                if (deviceName == null || deviceName.isEmpty()) {
-                    Optional<Device> deviceOpt = deviceRepository.findByVid(deviceVid);
-                    if (deviceOpt.isPresent()) {
-                        deviceName = deviceOpt.get().getDeviceName();
-                    } else {
-                        deviceName = "Unknown Device";
-                    }
+                String deviceName = "Unknown Device";
+                Optional<Device> deviceOpt = deviceRepository.findByVid(deviceVid);
+                if (deviceOpt.isPresent()) {
+                    deviceName = deviceOpt.get().getDeviceName();
                 }
                 
                 // 计算该设备的统计信息
@@ -665,14 +652,14 @@ public class DataServiceImpl implements DataService {
                 double deviceAvgHumidity = deviceList.stream()
                         .filter(data -> data.getHin() != null || data.getHout() != null)
                         .mapToDouble(data -> {
-                            Double internalHumidity = data.getHin();
-                            Double externalHumidity = data.getHout();
+                            Integer internalHumidity = data.getHin();
+                            Integer externalHumidity = data.getHout();
                             if (internalHumidity != null && externalHumidity != null) {
                                 return (internalHumidity + externalHumidity) / 2.0;
                             } else if (internalHumidity != null) {
-                                return internalHumidity;
+                                return internalHumidity.doubleValue();
                             } else if (externalHumidity != null) {
-                                return externalHumidity;
+                                return externalHumidity.doubleValue();
                             } else {
                                 return 0.0;
                             }
