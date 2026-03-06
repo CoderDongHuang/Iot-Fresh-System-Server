@@ -136,20 +136,43 @@ public class DeviceController {
     public ApiResponse<com.iot.fresh.dto.PaginatedResponse<com.iot.fresh.dto.DeviceDataDto>> getDeviceHistoryData(@PathVariable String vid,
                                                                        @RequestParam(defaultValue = "1") Integer pageNum,
                                                                        @RequestParam(defaultValue = "20") Integer pageSize,
-                                                                       @RequestParam(required = false) String dataType) {
+                                                                       @RequestParam(required = false) String dataType,
+                                                                       @RequestParam(required = false) String startTime,
+                                                                       @RequestParam(required = false) String endTime) {
         try {
-            log.info("接收到获取设备历史数据请求 - VID: {}, pageNum: {}, pageSize: {}, dataType: {}", 
-                    vid, pageNum, pageSize, dataType);
+            log.info("接收到获取设备历史数据请求 - VID: {}, pageNum: {}, pageSize: {}, dataType: {}, startTime: {}, endTime: {}", 
+                    vid, pageNum, pageSize, dataType, startTime, endTime);
             
-            // 设置默认时间范围（最近7天）
-            java.time.LocalDateTime endTime = java.time.LocalDateTime.now();
-            java.time.LocalDateTime startTime = endTime.minusDays(7);
+            // 解析时间参数
+            java.time.LocalDateTime startDateTime = null;
+            java.time.LocalDateTime endDateTime = null;
+            
+            if (startTime != null && !startTime.trim().isEmpty()) {
+                startDateTime = java.time.LocalDateTime.parse(startTime, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+            
+            if (endTime != null && !endTime.trim().isEmpty()) {
+                endDateTime = java.time.LocalDateTime.parse(endTime, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+            
+            // 设置默认时间范围（如果未提供时间参数，查询所有数据）
+            if (startDateTime == null) {
+                startDateTime = java.time.LocalDateTime.of(2020, 1, 1, 0, 0); // 默认从2020年开始
+            }
+            
+            if (endDateTime == null) {
+                endDateTime = java.time.LocalDateTime.now().plusDays(1); // 默认到明天
+            }
+            
+            log.info("查询时间范围 - 开始时间: {}, 结束时间: {}", startDateTime, endDateTime);
             
             // 调用数据服务获取历史数据
             ApiResponse<com.iot.fresh.dto.PaginatedResponse<com.iot.fresh.dto.DeviceDataDto>> response = 
-                dataService.getDeviceHistoryDataWithPagination(vid, dataType, startTime, endTime, pageNum, pageSize);
+                dataService.getDeviceHistoryDataWithPagination(vid, dataType, startDateTime, endDateTime, pageNum, pageSize);
             
-            log.info("获取设备历史数据请求处理完成 - VID: {}, 结果: {}", vid, response.isSuccess());
+            log.info("获取设备历史数据请求处理完成 - VID: {}, 结果: {}, 数据数量: {}", 
+                    vid, response.isSuccess(), 
+                    response.isSuccess() && response.getData() != null ? response.getData().getList().size() : 0);
             return response;
             
         } catch (Exception e) {
