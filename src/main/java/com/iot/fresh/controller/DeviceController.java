@@ -196,22 +196,24 @@ public class DeviceController {
             if (response.isSuccess() && response.getData() != null) {
                 List<DeviceDto> deviceList = (List<DeviceDto>) response.getData();
                 
-                // 转换为前端要求的下划线格式
+                // 转换为前端期望的驼峰格式
                 List<Map<String, Object>> formattedList = new java.util.ArrayList<>();
                 for (DeviceDto device : deviceList) {
                     Map<String, Object> deviceMap = new java.util.HashMap<>();
                     deviceMap.put("vid", device.getVid());
-                    deviceMap.put("device_name", device.getDeviceName());
-                    deviceMap.put("device_type", device.getDeviceType());
+                    deviceMap.put("deviceName", device.getDeviceName());
+                    deviceMap.put("deviceType", device.getDeviceType());
                     deviceMap.put("status", device.getStatus());
                     deviceMap.put("location", device.getLocation());
+                    deviceMap.put("contactPhone", device.getContactPhone());
+                    deviceMap.put("description", device.getDescription());
                     deviceMap.put("manufacturer", device.getManufacturer());
                     deviceMap.put("model", device.getModel());
-                    deviceMap.put("firmware_version", device.getFirmwareVersion());
+                    deviceMap.put("firmwareVersion", device.getFirmwareVersion());
                     if (device.getLastHeartbeat() != null) {
-                        deviceMap.put("last_online_time", device.getLastHeartbeat().toString());
+                        deviceMap.put("lastHeartbeat", device.getLastHeartbeat().toString());
                     } else {
-                        deviceMap.put("last_online_time", null);
+                        deviceMap.put("lastHeartbeat", null);
                     }
                     formattedList.add(deviceMap);
                 }
