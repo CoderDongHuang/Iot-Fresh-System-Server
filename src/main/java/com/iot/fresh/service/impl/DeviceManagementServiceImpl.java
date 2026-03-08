@@ -283,6 +283,11 @@ public class DeviceManagementServiceImpl implements DeviceManagementService {
         dto.setContactPhone(device.getContactPhone());
         dto.setDescription(device.getDescription());
         
+        // 设置制造商、型号和固件版本字段
+        dto.setManufacturer(device.getManufacturer());
+        dto.setModel(device.getModel());
+        dto.setFirmwareVersion(device.getFirmwareVersion());
+        
         // 设置多种时间格式以满足API规范
         dto.setLastOnlineTime(device.getLastHeartbeat());
         dto.setLastOnline_time(device.getLastHeartbeat());

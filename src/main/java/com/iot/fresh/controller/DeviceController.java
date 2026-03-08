@@ -4,6 +4,7 @@ import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.dto.DeviceDto;
 import com.iot.fresh.service.DeviceService;
 import com.iot.fresh.service.DataService;
+import com.iot.fresh.service.DeviceManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class DeviceController {
     
     @Autowired
     private DataService dataService;
+    
+    @Autowired
+    private DeviceManagementService deviceManagementService;
     
     /**
      * 新增设备
@@ -186,41 +190,79 @@ public class DeviceController {
      * GET http://localhost:8080/api/device/list
      */
     @GetMapping("/list")
-    public ApiResponse<Map<String, Object>> getAllDevices() {
+    public ApiResponse<Map<String, Object>> getAllDevices(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
         try {
-            log.info("接收到获取设备列表请求");
+            log.info("接收到获取设备列表请求 - pageNum: {}, pageSize: {}, keyword: {}, status: {}", 
+                    pageNum, pageSize, keyword, status);
             
-            ApiResponse response = deviceService.getAllDevices();
+            // 将字符串状态转换为整数状态
+            Integer statusInt = null;
+            if (status != null) {
+                switch (status.toLowerCase()) {
+                    case "online":
+                        statusInt = 1;
+                        break;
+                    case "offline":
+                        statusInt = 0;
+                        break;
+                    case "error":
+                        statusInt = 2;
+                        break;
+                    case "maintenance":
+                        statusInt = 3;
+                        break;
+                    default:
+                        try {
+                            statusInt = Integer.parseInt(status);
+                        } catch (NumberFormatException e) {
+                            // 如果无法解析为整数，则忽略状态过滤
+                            statusInt = null;
+                        }
+                        break;
+                }
+            }
             
-            // 转换为前端期望的格式
+            // 调用设备管理服务获取分页数据
+            ApiResponse<com.iot.fresh.dto.PaginatedResponse<DeviceDto>> response = 
+                deviceManagementService.getDeviceList(pageNum, pageSize, keyword, statusInt);
+            
+            log.info("设备管理服务调用结果 - 成功: {}, 数据: {}", response.isSuccess(), response.getData() != null);
+            
+            // 转换为前端期望的格式（与设备管理界面保持一致）
             if (response.isSuccess() && response.getData() != null) {
-                List<DeviceDto> deviceList = (List<DeviceDto>) response.getData();
+                com.iot.fresh.dto.PaginatedResponse<DeviceDto> paginatedData = response.getData();
+                log.info("分页数据 - 总数: {}, 当前页数量: {}", paginatedData.getTotal(), paginatedData.getList().size());
                 
-                // 转换为前端期望的驼峰格式
+                // 转换为前端期望的格式
                 List<Map<String, Object>> formattedList = new java.util.ArrayList<>();
-                for (DeviceDto device : deviceList) {
+                for (DeviceDto device : paginatedData.getList()) {
                     Map<String, Object> deviceMap = new java.util.HashMap<>();
                     deviceMap.put("vid", device.getVid());
                     deviceMap.put("deviceName", device.getDeviceName());
                     deviceMap.put("deviceType", device.getDeviceType());
                     deviceMap.put("status", device.getStatus());
                     deviceMap.put("location", device.getLocation());
-                    deviceMap.put("contactPhone", device.getContactPhone());
-                    deviceMap.put("description", device.getDescription());
                     deviceMap.put("manufacturer", device.getManufacturer());
                     deviceMap.put("model", device.getModel());
                     deviceMap.put("firmwareVersion", device.getFirmwareVersion());
                     if (device.getLastHeartbeat() != null) {
-                        deviceMap.put("lastHeartbeat", device.getLastHeartbeat().toString());
+                        // 格式化时间为 "yyyy-MM-dd HH:mm:ss" 格式
+                        deviceMap.put("lastOnlineTime", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                     } else {
-                        deviceMap.put("lastHeartbeat", null);
+                        deviceMap.put("lastOnlineTime", null);
                     }
                     formattedList.add(deviceMap);
                 }
                 
                 Map<String, Object> frontendData = new java.util.HashMap<>();
                 frontendData.put("list", formattedList);
-                frontendData.put("total", formattedList.size());
+                frontendData.put("total", paginatedData.getTotal());
+                frontendData.put("pageNum", paginatedData.getPageNum());
+                frontendData.put("pageSize", paginatedData.getPageSize());
                 
                 log.info("获取设备列表请求处理完成 - 设备数量: {}", formattedList.size());
                 return ApiResponse.success("操作成功", frontendData);

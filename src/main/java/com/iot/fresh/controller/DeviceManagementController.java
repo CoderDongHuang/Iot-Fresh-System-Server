@@ -58,9 +58,33 @@ public class DeviceManagementController {
         // 转换为前端期望的格式
         if (response.isSuccess() && response.getData() != null) {
             PaginatedResponse<DeviceDto> paginatedData = response.getData();
+            
+            // 转换为前端期望的格式
+            List<Map<String, Object>> formattedList = new java.util.ArrayList<>();
+            for (DeviceDto device : paginatedData.getList()) {
+                Map<String, Object> deviceMap = new java.util.HashMap<>();
+                deviceMap.put("vid", device.getVid());
+                deviceMap.put("deviceName", device.getDeviceName());
+                deviceMap.put("deviceType", device.getDeviceType());
+                deviceMap.put("status", device.getStatus());
+                deviceMap.put("location", device.getLocation());
+                deviceMap.put("manufacturer", device.getManufacturer());
+                deviceMap.put("model", device.getModel());
+                deviceMap.put("firmwareVersion", device.getFirmwareVersion());
+                if (device.getLastHeartbeat() != null) {
+                    // 格式化时间为 "yyyy-MM-dd HH:mm:ss" 格式
+                    deviceMap.put("lastOnlineTime", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } else {
+                    deviceMap.put("lastOnlineTime", null);
+                }
+                formattedList.add(deviceMap);
+            }
+            
             Map<String, Object> frontendData = new java.util.HashMap<>();
-            frontendData.put("list", paginatedData.getList());
+            frontendData.put("list", formattedList);
             frontendData.put("total", paginatedData.getTotal());
+            frontendData.put("pageNum", paginatedData.getPageNum());
+            frontendData.put("pageSize", paginatedData.getPageSize());
             
             return ApiResponse.success("操作成功", frontendData);
         } else {
