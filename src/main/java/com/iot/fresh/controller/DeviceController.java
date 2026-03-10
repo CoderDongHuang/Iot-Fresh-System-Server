@@ -118,9 +118,9 @@ public class DeviceController {
             }
             
             if (device.getCreatedAt() != null) {
-                deviceDetail.put("created_at", device.getCreatedAt().toString());
+                deviceDetail.put("createTime", device.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             } else {
-                deviceDetail.put("created_at", null);
+                deviceDetail.put("createTime", null);
             }
             
             log.info("获取设备详情请求处理完成 - VID: {}", vid);
@@ -232,29 +232,39 @@ public class DeviceController {
             
             log.info("设备管理服务调用结果 - 成功: {}, 数据: {}", response.isSuccess(), response.getData() != null);
             
-            // 转换为前端期望的格式（与设备管理界面保持一致）
+            // 转换为前端期望的格式 - 返回所有可能用到的字段
             if (response.isSuccess() && response.getData() != null) {
                 com.iot.fresh.dto.PaginatedResponse<DeviceDto> paginatedData = response.getData();
                 log.info("分页数据 - 总数: {}, 当前页数量: {}", paginatedData.getTotal(), paginatedData.getList().size());
                 
-                // 转换为前端期望的格式
+                // 转换为前端期望的格式 - 返回所有字段，前端按需选择
                 List<Map<String, Object>> formattedList = new java.util.ArrayList<>();
                 for (DeviceDto device : paginatedData.getList()) {
                     Map<String, Object> deviceMap = new java.util.HashMap<>();
+                    
+                    // 必需字段
                     deviceMap.put("vid", device.getVid());
                     deviceMap.put("deviceName", device.getDeviceName());
-                    deviceMap.put("deviceType", device.getDeviceType());
                     deviceMap.put("status", device.getStatus());
+                    
+                    // 时间字段（确保包含lastHeartbeat）
+                    if (device.getLastHeartbeat() != null) {
+                        deviceMap.put("lastHeartbeat", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        deviceMap.put("lastOnlineTime", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    } else {
+                        deviceMap.put("lastHeartbeat", null);
+                        deviceMap.put("lastOnlineTime", null);
+                    }
+                    
+                    // 可选字段
+                    deviceMap.put("contactPhone", device.getContactPhone());
+                    deviceMap.put("description", device.getDescription());
                     deviceMap.put("location", device.getLocation());
+                    deviceMap.put("deviceType", device.getDeviceType());
                     deviceMap.put("manufacturer", device.getManufacturer());
                     deviceMap.put("model", device.getModel());
                     deviceMap.put("firmwareVersion", device.getFirmwareVersion());
-                    if (device.getLastHeartbeat() != null) {
-                        // 格式化时间为 "yyyy-MM-dd HH:mm:ss" 格式
-                        deviceMap.put("lastOnlineTime", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                    } else {
-                        deviceMap.put("lastOnlineTime", null);
-                    }
+                    
                     formattedList.add(deviceMap);
                 }
                 
