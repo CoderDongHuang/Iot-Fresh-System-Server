@@ -2,9 +2,19 @@ package com.iot.fresh.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "devices")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class Device {
     
     @Id
@@ -41,77 +51,22 @@ public class Device {
     @Column(name = "firmware_version", length = 50)
     private String firmwareVersion;
     
-    @Column(name = "created_at")
+    @Column(name = "ip_address", length = 45)
+    private String ipAddress;
+    
+    @Column(name = "mac_address", length = 17)
+    private String macAddress;
+    
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
+    @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(name = "last_heartbeat")
+    @Column(name = "last_online_time")
     private LocalDateTime lastHeartbeat;
     
-    // 构造函数
-    public Device() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-    
-    public Device(String vid, String deviceName, String deviceType, String location, 
-                  Integer status, String description) {
-        this();
-        this.vid = vid;
-        this.deviceName = deviceName;
-        this.deviceType = deviceType;
-        this.location = location;
-        this.status = status != null ? status : 1;
-        this.description = description;
-    }
-    
-    // Getter和Setter方法
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    
-    public String getVid() { return vid; }
-    public void setVid(String vid) { this.vid = vid; }
-    
-    public String getDeviceName() { return deviceName; }
-    public void setDeviceName(String deviceName) { this.deviceName = deviceName; }
-    
-    public String getDeviceType() { return deviceType; }
-    public void setDeviceType(String deviceType) { this.deviceType = deviceType; }
-    
-    public Integer getStatus() { return status; }
-    public void setStatus(Integer status) { this.status = status; }
-    
-    public String getLocation() { return location; }
-    public void setLocation(String location) { this.location = location; }
-    
-    public String getContactPhone() { return contactPhone; }
-    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
-    
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    
-    public String getManufacturer() { return manufacturer; }
-    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
-    
-    public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
-    
-    public String getFirmwareVersion() { return firmwareVersion; }
-    public void setFirmwareVersion(String firmwareVersion) { this.firmwareVersion = firmwareVersion; }
-    
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    
-    public LocalDateTime getLastHeartbeat() { return lastHeartbeat; }
-    public void setLastHeartbeat(LocalDateTime lastHeartbeat) { this.lastHeartbeat = lastHeartbeat; }
-    
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+
 }

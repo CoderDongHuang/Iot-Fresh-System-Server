@@ -9,9 +9,9 @@ public interface DeviceService {
     /**
      * 新增设备
      * @param deviceDto 设备信息
-     * @return 操作结果
+     * @return 新增的设备信息
      */
-    ApiResponse<String> addDevice(DeviceDto deviceDto);
+    ApiResponse<DeviceDto> addDevice(DeviceDto deviceDto);
     
     /**
      * 根据VID获取设备信息

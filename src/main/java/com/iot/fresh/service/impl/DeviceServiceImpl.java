@@ -24,7 +24,7 @@ public class DeviceServiceImpl implements DeviceService {
     private DeviceRepository deviceRepository;
     
     @Override
-    public ApiResponse<String> addDevice(DeviceDto deviceDto) {
+    public ApiResponse<DeviceDto> addDevice(DeviceDto deviceDto) {
         try {
             log.info("开始新增设备 - VID: {}, 设备名称: {}", deviceDto.getVid(), deviceDto.getDeviceName());
             
@@ -42,22 +42,32 @@ public class DeviceServiceImpl implements DeviceService {
                 return ApiResponse.error("设备VID已存在: " + deviceDto.getVid());
             }
             
-            // 创建设备实体
-            Device device = new Device(
-                deviceDto.getVid(),
-                deviceDto.getDeviceName(),
-                deviceDto.getDeviceType(),
-                deviceDto.getLocation(),
-                deviceDto.getStatus(),
-                deviceDto.getDescription()
-            );
+            // 创建设备实体 - 使用默认构造函数并设置所有字段
+            Device device = new Device();
+            device.setVid(deviceDto.getVid());
+            device.setDeviceName(deviceDto.getDeviceName());
+            device.setDeviceType(deviceDto.getDeviceType());
+            device.setLocation(deviceDto.getLocation());
+            device.setStatus(deviceDto.getStatus() != null ? deviceDto.getStatus() : 1);
+            device.setDescription(deviceDto.getDescription());
+            device.setManufacturer(deviceDto.getManufacturer());
+            device.setModel(deviceDto.getModel());
+            device.setFirmwareVersion(deviceDto.getFirmwareVersion());
+            device.setIpAddress(deviceDto.getIpAddress());
+            device.setMacAddress(deviceDto.getMacAddress());
+            device.setContactPhone(deviceDto.getContactPhone());
+            
+            // 设置默认的最后上线时间和心跳时间（当前时间）
+            device.setLastHeartbeat(LocalDateTime.now());
             
             // 保存到数据库
             Device savedDevice = deviceRepository.save(device);
             
             log.info("设备新增成功 - ID: {}, VID: {}", savedDevice.getId(), savedDevice.getVid());
             
-            return ApiResponse.success("设备新增成功");
+            // 转换为DTO并返回
+            DeviceDto savedDeviceDto = convertToDto(savedDevice);
+            return ApiResponse.success("设备新增成功", savedDeviceDto);
             
         } catch (Exception e) {
             log.error("新增设备失败 - VID: {}, 错误: {}", deviceDto.getVid(), e.getMessage(), e);

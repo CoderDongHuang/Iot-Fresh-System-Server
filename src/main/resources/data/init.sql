@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS devices (
     firmware_version VARCHAR(50),
     ip_address VARCHAR(45),
     mac_address VARCHAR(17),
+    contact_phone VARCHAR(20),
     last_online_time TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

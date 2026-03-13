@@ -35,16 +35,95 @@ public class DeviceController {
      * POST http://localhost:8080/api/device/add
      */
     @PostMapping("/add")
-    public ApiResponse addDevice(@RequestBody DeviceDto deviceDto) {
+    public ApiResponse<Map<String, Object>> addDevice(@RequestBody Map<String, Object> requestData) {
         try {
-            log.info("接收到新增设备请求 - 设备名称: {}, VID: {}", 
-                deviceDto.getDeviceName(), deviceDto.getVid());
+            log.info("接收到新增设备请求 - 请求数据: {}", requestData);
+            
+            // 转换前端数据为DeviceDto
+            DeviceDto deviceDto = new DeviceDto();
+            deviceDto.setVid((String) requestData.get("vid"));
+            deviceDto.setDeviceName((String) requestData.get("deviceName"));
+            deviceDto.setDeviceType((String) requestData.get("deviceType"));
+            deviceDto.setLocation((String) requestData.get("location"));
+            deviceDto.setDescription((String) requestData.get("description"));
+            deviceDto.setManufacturer((String) requestData.get("manufacturer"));
+            deviceDto.setModel((String) requestData.get("model"));
+            deviceDto.setFirmwareVersion((String) requestData.get("firmwareVersion"));
+            deviceDto.setContactPhone((String) requestData.get("contactPhone"));
+            
+            // 处理状态字段转换
+            Object statusObj = requestData.get("status");
+            if (statusObj != null) {
+                if (statusObj instanceof String) {
+                    String statusStr = (String) statusObj;
+                    switch (statusStr.toLowerCase()) {
+                        case "online":
+                            deviceDto.setStatus(1);
+                            break;
+                        case "offline":
+                            deviceDto.setStatus(0);
+                            break;
+                        case "error":
+                            deviceDto.setStatus(2);
+                            break;
+                        case "maintenance":
+                            deviceDto.setStatus(3);
+                            break;
+                        default:
+                            try {
+                                deviceDto.setStatus(Integer.parseInt(statusStr));
+                            } catch (NumberFormatException e) {
+                                deviceDto.setStatus(1); // 默认在线状态
+                            }
+                            break;
+                    }
+                } else if (statusObj instanceof Integer) {
+                    deviceDto.setStatus((Integer) statusObj);
+                } else {
+                    deviceDto.setStatus(1); // 默认在线状态
+                }
+            } else {
+                deviceDto.setStatus(1); // 默认在线状态
+            }
+            
+            log.info("转换后的设备数据 - VID: {}, 设备名称: {}, 状态: {}", 
+                deviceDto.getVid(), deviceDto.getDeviceName(), deviceDto.getStatus());
             
             // 调用服务层新增设备
             ApiResponse response = deviceService.addDevice(deviceDto);
             
-            log.info("新增设备请求处理完成 - 结果: {}", response.isSuccess());
-            return response;
+            if (response.isSuccess() && response.getData() != null) {
+                // 获取新增的设备信息
+                DeviceDto newDevice = (DeviceDto) response.getData();
+                
+                // 转换为前端期望的完整格式
+                Map<String, Object> deviceData = new java.util.HashMap<>();
+                deviceData.put("id", newDevice.getId());
+                deviceData.put("deviceName", newDevice.getDeviceName());
+                deviceData.put("vid", newDevice.getVid());
+                deviceData.put("deviceType", newDevice.getDeviceType());
+                deviceData.put("location", newDevice.getLocation());
+                deviceData.put("manufacturer", newDevice.getManufacturer());
+                deviceData.put("model", newDevice.getModel());
+                deviceData.put("firmwareVersion", newDevice.getFirmwareVersion());
+                deviceData.put("ipAddress", newDevice.getContactPhone()); // 使用contactPhone作为ipAddress
+                deviceData.put("macAddress", null); // MAC地址暂时设为null
+                deviceData.put("contactPhone", newDevice.getContactPhone());
+                deviceData.put("status", newDevice.getStatus());
+                deviceData.put("description", newDevice.getDescription());
+                
+                // 格式化创建时间
+                if (newDevice.getCreatedAt() != null) {
+                    deviceData.put("createTime", newDevice.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } else {
+                    deviceData.put("createTime", null);
+                }
+                
+                log.info("新增设备请求处理完成 - 设备ID: {}, VID: {}", newDevice.getId(), newDevice.getVid());
+                return ApiResponse.success("success", deviceData);
+            } else {
+                return ApiResponse.error(response.getCode(), response.getMessage());
+            }
             
         } catch (Exception e) {
             log.error("处理新增设备请求时发生错误: {}", e.getMessage(), e);

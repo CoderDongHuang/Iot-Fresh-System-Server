@@ -15,6 +15,8 @@ public class DeviceDto {
     private String manufacturer;
     private String model;
     private String firmwareVersion;
+    private String ipAddress;
+    private String macAddress;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastHeartbeat;
@@ -66,6 +68,12 @@ public class DeviceDto {
     
     public String getFirmwareVersion() { return firmwareVersion; }
     public void setFirmwareVersion(String firmwareVersion) { this.firmwareVersion = firmwareVersion; }
+    
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    
+    public String getMacAddress() { return macAddress; }
+    public void setMacAddress(String macAddress) { this.macAddress = macAddress; }
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
