@@ -44,6 +44,9 @@ public class DeviceData implements Serializable {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "timestamp")
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt; // 更新时间
+
+    @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp; // 数据时间戳
 }

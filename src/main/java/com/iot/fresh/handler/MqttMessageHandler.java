@@ -125,12 +125,23 @@ public class MqttMessageHandler {
      */
     private void updateDeviceStatusDirectly(String vid, String payload) {
         try {
+            System.out.println("Processing status update for VID: " + vid + ", payload: " + payload);
+            
             // 解析状态更新消息
             Integer status = parseStatusFromPayload(payload);
             if (status != null) {
-                // 更新设备状态到devices表
+                System.out.println("Parsed VStatus: " + status);
+                
+                // 1. 更新设备状态到devices表
                 dataService.updateDeviceStatus(vid, status);
-                System.out.println("Directly updated device status for VID: " + vid + ", status: " + status);
+                System.out.println("Updated device status in devices table for VID: " + vid + ", status: " + status);
+                
+                // 2. 更新设备数据表中的状态信息（在同一个设备记录上）
+                dataService.updateDeviceDataStatus(vid, status);
+                System.out.println("Updated device status in device_data table for VID: " + vid + ", status: " + status);
+                
+            } else {
+                System.err.println("Failed to parse status from payload: " + payload);
             }
         } catch (Exception e) {
             System.err.println("Error updating device status directly: " + e.getMessage());

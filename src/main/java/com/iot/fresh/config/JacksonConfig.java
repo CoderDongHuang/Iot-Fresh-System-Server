@@ -22,7 +22,7 @@ public class JacksonConfig {
         
         // 配置LocalDateTime的序列化和反序列化
         javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))); // 支持 "2026-03-14 23:55:30" 格式
         
         mapper.registerModule(javaTimeModule);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

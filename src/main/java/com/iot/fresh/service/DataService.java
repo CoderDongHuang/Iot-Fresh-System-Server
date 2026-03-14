@@ -97,4 +97,20 @@ public interface DataService {
      * @return Map<String, Object> 统计数据
      */
     Map<String, Object> getDeviceDataStatistics(String vid, LocalDateTime startTime, LocalDateTime endTime);
+    
+    /**
+     * 保存仅包含状态信息的设备数据记录
+     * 
+     * @param vid 设备唯一标识符
+     * @param status 设备状态
+     */
+    void saveStatusOnlyData(String vid, Integer status);
+    
+    /**
+     * 更新设备数据表中的状态信息（在同一个设备记录上）
+     * 
+     * @param vid 设备唯一标识符
+     * @param status 设备状态
+     */
+    void updateDeviceDataStatus(String vid, Integer status);
 }

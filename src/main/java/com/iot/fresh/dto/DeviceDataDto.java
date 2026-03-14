@@ -16,15 +16,21 @@ public class DeviceDataDto implements Serializable {
     private String vid;
     
     // 温度数据
+    @JsonProperty("Tin")
     private Double tin; // 内部温度
+    @JsonProperty("Tout")
     private Double tout; // 外部温度
     
     // 湿度数据
+    @JsonProperty("Hin")
     private Integer hin; // 内部湿度
+    @JsonProperty("Hout")
     private Integer hout; // 外部湿度
     
     // 光照数据
+    @JsonProperty("LXin")
     private Integer lxin; // 内部光照
+    @JsonProperty("LXout")
     private Integer lxout; // 外部光照
     
     // 亮度调节

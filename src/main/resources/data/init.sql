@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS device_data (
     lxin INT, -- 内部光照
     lxout INT, -- 外部光照
     brightness INT, -- 亮度
-    vstatus TINYINT, -- 设备状态
+    vstatus TINYINT, -- 设备状态 -- 0:离线, 1:在线, 2:故障, 3:维护
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
