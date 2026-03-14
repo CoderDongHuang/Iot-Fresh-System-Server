@@ -145,10 +145,13 @@ public class MqttMessageHandler {
         try {
             // 尝试使用Jackson解析
             java.util.Map<String, Object> jsonMap = objectMapper.readValue(payload, java.util.Map.class);
-            // 同时支持status和vstatus字段
+            // 支持多种状态字段格式：status, vstatus, VStatus
             Object statusObj = jsonMap.get("status");
             if (statusObj == null) {
                 statusObj = jsonMap.get("vstatus");
+            }
+            if (statusObj == null) {
+                statusObj = jsonMap.get("VStatus");
             }
             
             if (statusObj != null) {
@@ -175,6 +178,16 @@ public class MqttMessageHandler {
                 // 如果没有status，尝试解析vstatus
                 else if (payload.contains("\"vstatus\"")) {
                     int start = payload.indexOf("\"vstatus\":") + 10;
+                    int end = payload.indexOf(",", start);
+                    if (end == -1) end = payload.indexOf("}", start);
+                    if (start > 9 && end > start) {
+                        String value = payload.substring(start, end).trim();
+                        return Integer.parseInt(value);
+                    }
+                }
+                // 如果没有vstatus，尝试解析VStatus
+                else if (payload.contains("\"VStatus\"")) {
+                    int start = payload.indexOf("\"VStatus\":") + 10;
                     int end = payload.indexOf(",", start);
                     if (end == -1) end = payload.indexOf("}", start);
                     if (start > 9 && end > start) {

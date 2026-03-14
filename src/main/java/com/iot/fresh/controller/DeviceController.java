@@ -51,6 +51,12 @@ public class DeviceController {
             deviceDto.setFirmwareVersion((String) requestData.get("firmwareVersion"));
             deviceDto.setContactPhone((String) requestData.get("contactPhone"));
             
+            // 设置IP地址和MAC地址（带默认值）
+            String ipAddress = (String) requestData.get("ipAddress");
+            String macAddress = (String) requestData.get("macAddress");
+            deviceDto.setIpAddress(ipAddress != null ? ipAddress : "192.168.1.1"); // 默认IP
+            deviceDto.setMacAddress(macAddress != null ? macAddress : "00:00:00:00:00:00"); // 默认MAC
+            
             // 处理状态字段转换
             Object statusObj = requestData.get("status");
             if (statusObj != null) {
@@ -96,6 +102,8 @@ public class DeviceController {
                 // 获取新增的设备信息
                 DeviceDto newDevice = (DeviceDto) response.getData();
                 
+                log.info("新增设备返回的DTO对象 - 最后心跳时间: {}", newDevice.getLastHeartbeat());
+                
                 // 转换为前端期望的完整格式
                 Map<String, Object> deviceData = new java.util.HashMap<>();
                 deviceData.put("id", newDevice.getId());
@@ -117,6 +125,15 @@ public class DeviceController {
                     deviceData.put("createTime", newDevice.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
                 } else {
                     deviceData.put("createTime", null);
+                }
+                
+                // 格式化最后心跳时间
+                if (newDevice.getLastHeartbeat() != null) {
+                    deviceData.put("lastHeartbeat", newDevice.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    deviceData.put("lastOnlineTime", newDevice.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                } else {
+                    deviceData.put("lastHeartbeat", null);
+                    deviceData.put("lastOnlineTime", null);
                 }
                 
                 log.info("新增设备请求处理完成 - 设备ID: {}, VID: {}", newDevice.getId(), newDevice.getVid());

@@ -57,13 +57,21 @@ public class DeviceServiceImpl implements DeviceService {
             device.setMacAddress(deviceDto.getMacAddress());
             device.setContactPhone(deviceDto.getContactPhone());
             
-            // 设置默认的最后上线时间和心跳时间（当前时间）
-            device.setLastHeartbeat(LocalDateTime.now());
+            // 设置最后心跳时间和最后在线时间 - 以收到数据的时间为准
+            LocalDateTime currentTime = LocalDateTime.now();
+            device.setLastHeartbeat(currentTime);
+            device.setLastOnlineTime(currentTime);
+            
+            log.info("设置最后心跳时间: {}", currentTime);
+            log.info("设备对象最后心跳时间字段值: {}", device.getLastHeartbeat());
+            log.info("设备对象最后在线时间字段值: {}", device.getLastOnlineTime());
             
             // 保存到数据库
             Device savedDevice = deviceRepository.save(device);
             
-            log.info("设备新增成功 - ID: {}, VID: {}", savedDevice.getId(), savedDevice.getVid());
+            log.info("设备新增成功 - ID: {}, VID: {}, 最后心跳时间: {}", 
+                savedDevice.getId(), savedDevice.getVid(), savedDevice.getLastHeartbeat());
+            log.info("保存后设备对象最后心跳时间字段值: {}", savedDevice.getLastHeartbeat());
             
             // 转换为DTO并返回
             DeviceDto savedDeviceDto = convertToDto(savedDevice);

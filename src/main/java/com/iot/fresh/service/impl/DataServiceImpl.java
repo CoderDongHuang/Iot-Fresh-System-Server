@@ -11,6 +11,7 @@ import com.iot.fresh.service.DataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -155,6 +156,7 @@ public class DataServiceImpl implements DataService {
                 // deviceType字段已移除，跳过解析
             }
             
+            // 支持小写"tin"格式
             if (json.contains("\"tin\"")) {
                 int start = json.indexOf("\"tin\":") + 6;
                 int end = json.indexOf(",", start);
@@ -164,7 +166,18 @@ public class DataServiceImpl implements DataService {
                     dto.setTin(Double.parseDouble(value));
                 }
             }
+            // 支持大写"Tin"格式（来自硬件）
+            else if (json.contains("\"Tin\"")) {
+                int start = json.indexOf("\"Tin\":") + 6;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 5 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setTin(Double.parseDouble(value));
+                }
+            }
             
+            // 支持小写"tout"格式
             if (json.contains("\"tout\"")) {
                 int start = json.indexOf("\"tout\":") + 7;
                 int end = json.indexOf(",", start);
@@ -172,6 +185,58 @@ public class DataServiceImpl implements DataService {
                 if (start > 6 && end > start) {
                     String value = json.substring(start, end).trim();
                     dto.setTout(Double.parseDouble(value));
+                }
+            }
+            // 支持大写"Tout"格式（来自硬件）
+            else if (json.contains("\"Tout\"")) {
+                int start = json.indexOf("\"Tout\":") + 7;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 6 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setTout(Double.parseDouble(value));
+                }
+            }
+            
+            // 支持小写"hin"格式
+            if (json.contains("\"hin\"")) {
+                int start = json.indexOf("\"hin\":") + 6;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 5 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setHin(Integer.parseInt(value));
+                }
+            }
+            // 支持大写"Hin"格式（来自硬件）
+            else if (json.contains("\"Hin\"")) {
+                int start = json.indexOf("\"Hin\":") + 6;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 5 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setHin(Integer.parseInt(value));
+                }
+            }
+            
+            // 支持小写"hout"格式
+            if (json.contains("\"hout\"")) {
+                int start = json.indexOf("\"hout\":") + 7;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 6 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setHout(Integer.parseInt(value));
+                }
+            }
+            // 支持大写"Hout"格式（来自硬件）
+            else if (json.contains("\"Hout\"")) {
+                int start = json.indexOf("\"Hout\":") + 7;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 6 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setHout(Integer.parseInt(value));
                 }
             }
             
@@ -193,6 +258,27 @@ public class DataServiceImpl implements DataService {
                 if (start > 6 && end > start) {
                     String value = json.substring(start, end).trim();
                     dto.setLxin(Integer.parseInt(value));
+                }
+            }
+            
+            // 支持小写"lxout"格式
+            if (json.contains("\"lxout\"")) {
+                int start = json.indexOf("\"lxout\":") + 8;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 7 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setLxout(Integer.parseInt(value));
+                }
+            }
+            // 支持大写"LXout"格式（来自硬件）
+            else if (json.contains("\"LXout\"")) {
+                int start = json.indexOf("\"LXout\":") + 8;
+                int end = json.indexOf(",", start);
+                if (end == -1) end = json.indexOf("}", start);
+                if (start > 7 && end > start) {
+                    String value = json.substring(start, end).trim();
+                    dto.setLxout(Integer.parseInt(value));
                 }
             }
             
@@ -322,6 +408,7 @@ public class DataServiceImpl implements DataService {
     }
     
     @Override
+    @Transactional
     public void updateDeviceStatus(String vid, Integer status) {
         try {
             Optional<Device> deviceOpt = deviceRepository.findByVid(vid);
@@ -329,8 +416,28 @@ public class DataServiceImpl implements DataService {
                 Device device = deviceOpt.get();
                 device.setStatus(status);
                 device.setLastHeartbeat(LocalDateTime.now());
+                device.setUpdatedAt(LocalDateTime.now());
                 deviceRepository.save(device);
                 System.out.println("Updated device status in devices table for VID: " + vid + ", status: " + status);
+                
+                // 强制刷新到数据库
+                deviceRepository.flush();
+                System.out.println("Flushed device status to database for VID: " + vid);
+            } else {
+                // 设备不存在，创建新设备
+                System.out.println("Device not found for VID: " + vid + ", creating new device...");
+                Device newDevice = new Device();
+                newDevice.setVid(vid);
+                newDevice.setDeviceName("Auto-Created Device " + vid);
+                newDevice.setDeviceType("IoT Device");
+                newDevice.setStatus(status);
+                newDevice.setLastHeartbeat(LocalDateTime.now());
+                newDevice.setCreatedAt(LocalDateTime.now());
+                newDevice.setUpdatedAt(LocalDateTime.now());
+                
+                deviceRepository.save(newDevice);
+                deviceRepository.flush();
+                System.out.println("Created new device for VID: " + vid + ", status: " + status);
             }
         } catch (Exception e) {
             System.err.println("Error updating device status: " + e.getMessage());

@@ -5,15 +5,9 @@ import java.time.LocalDateTime;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "devices")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Device {
     
@@ -65,8 +59,66 @@ public class Device {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @Column(name = "last_online_time")
+    @Column(name = "last_heartbeat", nullable = true)
     private LocalDateTime lastHeartbeat;
     
-
+    @Column(name = "last_online_time", nullable = true)
+    private LocalDateTime lastOnlineTime;
+    
+    // 构造函数
+    public Device() {
+        // JPA审计注解会自动处理时间字段
+    }
+    
+    // Getter和Setter方法
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getVid() { return vid; }
+    public void setVid(String vid) { this.vid = vid; }
+    
+    public String getDeviceName() { return deviceName; }
+    public void setDeviceName(String deviceName) { this.deviceName = deviceName; }
+    
+    public String getDeviceType() { return deviceType; }
+    public void setDeviceType(String deviceType) { this.deviceType = deviceType; }
+    
+    public Integer getStatus() { return status; }
+    public void setStatus(Integer status) { this.status = status; }
+    
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
+    
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
+    
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    
+    public String getManufacturer() { return manufacturer; }
+    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
+    
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
+    
+    public String getFirmwareVersion() { return firmwareVersion; }
+    public void setFirmwareVersion(String firmwareVersion) { this.firmwareVersion = firmwareVersion; }
+    
+    public String getIpAddress() { return ipAddress; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    
+    public String getMacAddress() { return macAddress; }
+    public void setMacAddress(String macAddress) { this.macAddress = macAddress; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public LocalDateTime getLastHeartbeat() { return lastHeartbeat; }
+    public void setLastHeartbeat(LocalDateTime lastHeartbeat) { this.lastHeartbeat = lastHeartbeat; }
+    
+    public LocalDateTime getLastOnlineTime() { return lastOnlineTime; }
+    public void setLastOnlineTime(LocalDateTime lastOnlineTime) { this.lastOnlineTime = lastOnlineTime; }
 }
