@@ -2,8 +2,13 @@ package com.iot.fresh.controller;
 
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.dto.DeviceDataDto;
+import com.iot.fresh.entity.DeviceDataHistory;
 import com.iot.fresh.service.DataService;
+import com.iot.fresh.service.DeviceDataHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +25,9 @@ public class DeviceDataController {
 
     @Autowired
     private DataService dataService;
+    
+    @Autowired
+    private DeviceDataHistoryService deviceDataHistoryService;
 
     /**
      * 获取设备历史数据用于趋势图展示
@@ -171,7 +179,7 @@ public class DeviceDataController {
     }
 
     /**
-     * 历史数据查询接口
+     * 历史数据查询接口 - 数据来源改为 device_data_history 表
      * 
      * 路径: GET /api/device/history-data
      * 
@@ -179,37 +187,32 @@ public class DeviceDataController {
      * - pageNum - 页码
      * - pageSize - 每页大小
      * - vid - 设备VID（可选）
-     * - dataType - 数据类型（可选：temperature, humidity, light, other）
      * - startTime - 开始时间（可选）
      * - endTime - 结束时间（可选）
      * 
      * 返回格式:
      * {
      *   "code": 200,
-     *   "msg": "success",
+     *   "message": "success",
      *   "data": {
      *     "list": [
      *       {
-     *         "id": 1,
-     *         "vid": "device001",
-     *         "tin": 23.5,
-     *         "tout": 22.1,
-     *         "lxin": 150.5,
-     *         "brightness": 80,
-     *         "vStatus": 1,
-     *         "timestamp": "2023-12-01 10:30:45"
+     *         "update_at": "2026-03-15 14:30:00",
+     *         "tin": 25.5,
+     *         "tout": 20.3,
+     *         "lxin": 500,
+     *         "vStatus": 0
      *       }
      *     ],
-     *     "total": 100,
-     *     "pageNum": 1,
-     *     "pageSize": 20
+     *     "total": 50,
+     *     "pageSize": 10,
+     *     "pageNum": 1
      *   }
      * }
      * 
      * @param pageNum 页码
      * @param pageSize 每页大小
      * @param vid 设备VID（可选）
-     * @param dataType 数据类型（可选）
      * @param startTime 开始时间（可选）
      * @param endTime 结束时间（可选）
      * @return ApiResponse<Map<String, Object>> 包含分页历史数据的响应对象
@@ -221,7 +224,6 @@ public class DeviceDataController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize,
             @RequestParam(required = false) String vid,
-            @RequestParam(required = false) String dataType,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") String startTime,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") String endTime) {
         
@@ -231,11 +233,9 @@ public class DeviceDataController {
             LocalDateTime endDateTime = null;
             
             if (startTime != null && !startTime.trim().isEmpty()) {
-                // 尝试解析不同格式的时间字符串
                 try {
                     startDateTime = LocalDateTime.parse(startTime.replace(" ", "T"));
                 } catch (Exception e) {
-                    // 如果标准格式失败，尝试其他格式
                     try {
                         startDateTime = LocalDateTime.parse(startTime);
                     } catch (Exception ex) {
@@ -245,11 +245,9 @@ public class DeviceDataController {
                 }
             }
             if (endTime != null && !endTime.trim().isEmpty()) {
-                // 尝试解析不同格式的时间字符串
                 try {
                     endDateTime = LocalDateTime.parse(endTime.replace(" ", "T"));
                 } catch (Exception e) {
-                    // 如果标准格式失败，尝试其他格式
                     try {
                         endDateTime = LocalDateTime.parse(endTime);
                     } catch (Exception ex) {
@@ -267,53 +265,44 @@ public class DeviceDataController {
                 endDateTime = LocalDateTime.now();
             }
             
-            // 调用服务层获取分页数据
-                ApiResponse<com.iot.fresh.dto.PaginatedResponse<DeviceDataDto>> response = 
-                    dataService.getDeviceHistoryDataWithPagination(vid, dataType, startDateTime, endDateTime, pageNum, pageSize);
+            // 创建分页请求
+            Pageable pageable = PageRequest.of(pageNum - 1, pageSize);
             
-            if (response.isSuccess()) {
-                List<DeviceDataDto> dataList = response.getData().getList();
-                
-                // 转换数据格式以匹配前端期望
-                List<Map<String, Object>> resultList = dataList.stream().map(data -> {
-                    Map<String, Object> item = new HashMap<>();
-                    
-                    item.put("id", data.getId());
-                    item.put("vid", data.getVid());
-                    if (data.getTin() != null) item.put("tin", data.getTin());
-                    if (data.getTout() != null) item.put("tout", data.getTout());
-                    if (data.getLxin() != null) item.put("lxin", data.getLxin());
-                    if (data.getBrightness() != null) item.put("brightness", data.getBrightness());
-                    if (data.getVstatus() != null) item.put("vStatus", data.getVstatus());
-                    
-                    // 格式化时间戳
-                    if (data.getTimestamp() != null) {
-                        item.put("timestamp", data.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                    } else if (data.getCreatedAt() != null) {
-                        item.put("timestamp", data.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                    }
-                    
-                    return item;
-                }).collect(java.util.stream.Collectors.toList());
-                
-                // 构造分页响应
-                Map<String, Object> result = new HashMap<>();
-                result.put("list", resultList);
-                result.put("total", response.getData().getTotal());
-                result.put("pageNum", pageNum);
-                result.put("pageSize", pageSize);
-                
-                return ApiResponse.success(result);
+            // 查询历史数据表
+            Page<DeviceDataHistory> historyPage;
+            if (vid != null && !vid.trim().isEmpty()) {
+                // 按设备ID和时间范围查询
+                historyPage = deviceDataHistoryService.getHistoryDataByVidAndTimeRange(vid, startDateTime, endDateTime, pageable);
             } else {
-                // 如果服务调用失败，返回空结果
-                Map<String, Object> result = new HashMap<>();
-                result.put("list", java.util.Collections.emptyList());
-                result.put("total", 0);
-                result.put("pageNum", pageNum);
-                result.put("pageSize", pageSize);
-                
-                return ApiResponse.success(result);
+                // 按时间范围查询所有设备
+                historyPage = deviceDataHistoryService.getHistoryDataByTimeRange(startDateTime, endDateTime, pageable);
             }
+            
+            // 转换数据格式以匹配前端期望
+            List<Map<String, Object>> resultList = historyPage.getContent().stream().map(history -> {
+                Map<String, Object> item = new HashMap<>();
+                
+                // 按照指定格式返回字段
+                if (history.getUpdatedAt() != null) {
+                    item.put("update_at", history.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                }
+                if (history.getTin() != null) item.put("tin", history.getTin());
+                if (history.getTout() != null) item.put("tout", history.getTout());
+                if (history.getLxin() != null) item.put("lxin", history.getLxin());
+                if (history.getVstatus() != null) item.put("vStatus", history.getVstatus());
+                
+                return item;
+            }).collect(Collectors.toList());
+            
+            // 构造分页响应
+            Map<String, Object> result = new HashMap<>();
+            result.put("list", resultList);
+            result.put("total", (int) historyPage.getTotalElements());
+            result.put("pageSize", pageSize);
+            result.put("pageNum", pageNum);
+            
+            return ApiResponse.success(result);
+            
         } catch (Exception e) {
             e.printStackTrace();
             return ApiResponse.error("获取历史数据失败: " + e.getMessage());

@@ -2,8 +2,10 @@ package com.iot.fresh.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iot.fresh.dto.AlarmDataDto;
+import com.iot.fresh.dto.DeviceDataDto;
 import com.iot.fresh.service.AlarmService;
 import com.iot.fresh.service.DataService;
+import com.iot.fresh.service.DeviceDataHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.MessageHeaders;
@@ -19,6 +21,9 @@ public class MqttMessageHandler {
     
     @Autowired
     private AlarmService alarmService;
+    
+    @Autowired
+    private DeviceDataHistoryService deviceDataHistoryService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -38,6 +43,9 @@ public class MqttMessageHandler {
                     case "data":
                         // 处理设备数据
                         dataService.processDeviceDataFromMqtt(vid, payload);
+                        
+                        // 新增：同时保存到历史数据表
+                        saveToDeviceDataHistory(vid, payload);
                         break;
                     case "alarm":
                         // 处理报警数据
@@ -46,6 +54,9 @@ public class MqttMessageHandler {
                     case "status":
                         // 处理状态数据 - 直接更新设备状态
                         updateDeviceStatusDirectly(vid, payload);
+                        
+                        // 新增：同时保存到历史数据表
+                        saveStatusToDeviceDataHistory(vid, payload);
                         break;
                     case "rfid":
                         // 处理RFID数据
@@ -242,5 +253,149 @@ public class MqttMessageHandler {
             e.printStackTrace();
             return null;
         }
+    }
+    
+    /**
+     * 新增：保存设备数据到历史数据表
+     * 每次都要创建新记录，状态和设备表保持一致
+     */
+    private void saveToDeviceDataHistory(String vid, String payload) {
+        try {
+            System.out.println("=== Starting save to device data history ===");
+            System.out.println("VID: " + vid + ", Payload: " + payload);
+            
+            // 解析设备数据
+            DeviceDataDto deviceDataDto = parseDeviceDataFromJson(vid, payload);
+            if (deviceDataDto != null) {
+                System.out.println("Parsed device data for history - Tin: " + deviceDataDto.getTin() + ", Tout: " + deviceDataDto.getTout());
+                
+                // 调用历史数据服务保存
+                deviceDataHistoryService.saveDeviceDataHistory(deviceDataDto);
+                System.out.println("Saved device data to history table");
+            } else {
+                System.err.println("Failed to parse device data for history table");
+            }
+            
+            System.out.println("=== Save to device data history COMPLETED ===");
+        } catch (Exception e) {
+            System.err.println("ERROR saving to device data history: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 新增：保存状态数据到历史数据表
+     * 创建新记录，数据和上一条保持一致，状态更改
+     */
+    private void saveStatusToDeviceDataHistory(String vid, String payload) {
+        try {
+            System.out.println("=== Starting save status to device data history ===");
+            System.out.println("VID: " + vid + ", Payload: " + payload);
+            
+            // 解析状态
+            Integer status = parseStatusFromPayload(payload);
+            if (status != null) {
+                System.out.println("Parsed status for history: " + status);
+                
+                // 调用历史数据服务保存状态
+                deviceDataHistoryService.saveStatusHistory(vid, status);
+                System.out.println("Saved status to history table");
+            } else {
+                System.err.println("Failed to parse status for history table");
+            }
+            
+            System.out.println("=== Save status to device data history COMPLETED ===");
+        } catch (Exception e) {
+            System.err.println("ERROR saving status to device data history: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 解析设备数据JSON
+     */
+    private DeviceDataDto parseDeviceDataFromJson(String vid, String payload) {
+        try {
+            // 使用现有的DataService中的解析逻辑
+            // 这里简化处理，实际应该复用DataService中的解析方法
+            DeviceDataDto dto = new DeviceDataDto();
+            dto.setVid(vid);
+            
+            // 解析JSON数据
+            java.util.Map<String, Object> jsonMap = objectMapper.readValue(payload, java.util.Map.class);
+            
+            // 解析温度数据
+            if (jsonMap.containsKey("Tin")) {
+                dto.setTin(convertToDouble(jsonMap.get("Tin")));
+            }
+            if (jsonMap.containsKey("Tout")) {
+                dto.setTout(convertToDouble(jsonMap.get("Tout")));
+            }
+            
+            // 解析湿度数据
+            if (jsonMap.containsKey("Hin")) {
+                dto.setHin(convertToInteger(jsonMap.get("Hin")));
+            }
+            if (jsonMap.containsKey("Hout")) {
+                dto.setHout(convertToInteger(jsonMap.get("Hout")));
+            }
+            
+            // 解析光照数据
+            if (jsonMap.containsKey("LXin")) {
+                dto.setLxin(convertToInteger(jsonMap.get("LXin")));
+            }
+            if (jsonMap.containsKey("LXout")) {
+                dto.setLxout(convertToInteger(jsonMap.get("LXout")));
+            }
+            
+            // 解析亮度数据
+            if (jsonMap.containsKey("brightness")) {
+                dto.setBrightness(convertToInteger(jsonMap.get("brightness")));
+            }
+            
+            System.out.println("Parsed device data - Tin: " + dto.getTin() + ", Tout: " + dto.getTout());
+            return dto;
+            
+        } catch (Exception e) {
+            System.err.println("Error parsing device data JSON: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * 转换为Double类型
+     */
+    private Double convertToDouble(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number) {
+            return ((Number) obj).doubleValue();
+        }
+        if (obj instanceof String) {
+            try {
+                return Double.parseDouble((String) obj);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 转换为Integer类型
+     */
+    private Integer convertToInteger(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number) {
+            return ((Number) obj).intValue();
+        }
+        if (obj instanceof String) {
+            try {
+                return Integer.parseInt((String) obj);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

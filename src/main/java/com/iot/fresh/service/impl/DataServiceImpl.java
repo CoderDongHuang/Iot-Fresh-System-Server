@@ -5,9 +5,11 @@ import com.iot.fresh.dto.DeviceDataDto;
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.entity.Device;
 import com.iot.fresh.entity.DeviceData;
+import com.iot.fresh.entity.DeviceDataHistory;
 import com.iot.fresh.repository.DeviceDataRepository;
 import com.iot.fresh.repository.DeviceRepository;
 import com.iot.fresh.service.DataService;
+import com.iot.fresh.service.DeviceDataHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,9 @@ public class DataServiceImpl implements DataService {
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private DeviceDataHistoryService deviceDataHistoryService;
 
     /**
      * 从设备表获取对应设备的状态作为默认值
@@ -622,6 +627,46 @@ public class DataServiceImpl implements DataService {
         return dto;
     }
     
+    /**
+     * 将DeviceDataHistory转换为DeviceDataDto
+     * 按照前端要求的字段格式：update_at, tin, tout, lxin, vStatus
+     */
+    private DeviceDataDto convertHistoryToDeviceDataDto(DeviceDataHistory historyData) {
+        DeviceDataDto dto = new DeviceDataDto();
+        dto.setId(historyData.getId());
+        dto.setVid(historyData.getVid());
+        
+        // 温度数据
+        dto.setTin(historyData.getTin());
+        dto.setTout(historyData.getTout());
+        
+        // 湿度数据
+        dto.setHin(historyData.getHin());
+        dto.setHout(historyData.getHout());
+        
+        // 光照数据
+        dto.setLxin(historyData.getLxin());
+        dto.setLxout(historyData.getLxout());
+        
+        // 亮度调节
+        dto.setBrightness(historyData.getBrightness());
+        
+        // 设备状态 - 前端期望vStatus字段名
+        dto.setVstatus(historyData.getVstatus());
+        
+        // 风机速度字段 - 数据库中不存在，设为null
+        dto.setSpeedM1(null);
+        dto.setSpeedM2(null);
+        
+        // 时间戳 - 使用历史数据的更新时间
+        dto.setTimestamp(historyData.getUpdatedAt());
+        
+        // 创建时间 - 历史数据没有创建时间，使用更新时间
+        dto.setCreatedAt(historyData.getUpdatedAt());
+        
+        return dto;
+    }
+    
     @Override
     public ApiResponse<List<Map<String, Object>>> getLightDataByVid(String vid, LocalDateTime startTime, LocalDateTime endTime) {
         // 设置默认时间范围（1小时前到现在）
@@ -745,26 +790,26 @@ public class DataServiceImpl implements DataService {
         // 创建分页请求
         org.springframework.data.domain.Pageable pageable = 
             org.springframework.data.domain.PageRequest.of(pageNum - 1, pageSize, 
-            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "updatedAt"));
 
-        // 调用Repository查询数据
-        org.springframework.data.domain.Page<DeviceData> deviceDataPage = 
-            deviceDataRepository.findByVidAndTimeRangeWithPagination(vid, startTime, endTime, pageable);
+        // 使用DeviceDataHistoryService查询历史数据表
+        org.springframework.data.domain.Page<DeviceDataHistory> historyDataPage = 
+            deviceDataHistoryService.getHistoryDataByVidAndTimeRange(vid, startTime, endTime, pageable);
 
         // 如果指定了dataType，则进一步过滤结果
-        List<DeviceData> filteredDataList;
+        List<DeviceDataHistory> filteredDataList;
         if (dataType != null && !dataType.trim().isEmpty()) {
             // 根据dataType过滤数据，例如：如果dataType是"temperature"，则只保留有温度数据的记录
-            filteredDataList = deviceDataPage.getContent().stream()
+            filteredDataList = historyDataPage.getContent().stream()
                 .filter(data -> hasDataForType(data, dataType))
                 .collect(Collectors.toList());
         } else {
-            filteredDataList = deviceDataPage.getContent();
+            filteredDataList = historyDataPage.getContent();
         }
 
         // 转换为DTO并返回
         List<DeviceDataDto> dtoList = filteredDataList.stream()
-                .map(this::convertToDeviceDataDto)
+                .map(this::convertHistoryToDeviceDataDto)
                 .collect(Collectors.toList());
 
         // 由于我们进行了手动过滤，需要重新计算分页信息
@@ -782,7 +827,7 @@ public class DataServiceImpl implements DataService {
 
          com.iot.fresh.dto.PaginatedResponse<DeviceDataDto> paginatedResponse = new com.iot.fresh.dto.PaginatedResponse<>(
                  pagedDtoList,
-                 deviceDataPage.getTotalElements(), // 总数量
+                 historyDataPage.getTotalElements(), // 总数量
                  pageNum,              // 页码
                  pageSize              // 每页数量
          );
@@ -797,6 +842,41 @@ public class DataServiceImpl implements DataService {
      * @return 是否包含该类型的数据
      */
     private boolean hasDataForType(DeviceData data, String dataType) {
+        // 如果未指定数据类型或为空字符串，则包含所有数据
+        if (dataType == null || dataType.trim().length() == 0) {
+            return true;
+        }
+        
+        switch (dataType.toLowerCase().trim()) {
+            case "temperature":
+                return data.getTin() != null || data.getTout() != null;
+            case "humidity":
+                return data.getHin() != null || data.getHout() != null;
+            case "light":
+            case "illumination":
+                return data.getLxin() != null || data.getLxout() != null;
+            case "battery":
+                return false; // battery字段已移除
+            case "status":
+                return data.getVstatus() != null;
+            case "speed":
+            case "fan_speed":
+                return false; // speedM1和speedM2字段已移除
+            case "brightness":
+                return data.getBrightness() != null;
+            default:
+                // 如果数据类型未知，返回true以包含数据
+                return true;
+        }
+    }
+    
+    /**
+     * 检查设备历史数据是否包含指定类型的数据
+     * @param data 设备历史数据
+     * @param dataType 数据类型 (如 "temperature", "humidity", "light", "battery", "status")
+     * @return 是否包含该类型的数据
+     */
+    private boolean hasDataForType(DeviceDataHistory data, String dataType) {
         // 如果未指定数据类型或为空字符串，则包含所有数据
         if (dataType == null || dataType.trim().length() == 0) {
             return true;

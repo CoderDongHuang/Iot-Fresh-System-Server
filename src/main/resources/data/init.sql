@@ -78,6 +78,21 @@ CREATE TABLE IF NOT EXISTS alarms (
     FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE SET NULL
 );
 
+-- 历史数据表 - 用于存储历史数据，支持数据归档和查询
+CREATE TABLE IF NOT EXISTS device_data_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    vid VARCHAR(50) NOT NULL,
+    tin DOUBLE, -- 内部温度
+    tout DOUBLE, -- 外部温度
+    hin INT, -- 内部湿度
+    hout INT, -- 外部湿度
+    lxin INT, -- 内部光照
+    lxout INT, -- 外部光照
+    brightness INT, -- 亮度
+    vstatus TINYINT, -- 设备状态 -- 0:离线, 1:在线, 2:故障, 3:维护
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- 创建索引
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_devices_vid ON devices(vid);
@@ -87,6 +102,9 @@ CREATE INDEX idx_device_data_timestamp ON device_data(timestamp);
 CREATE INDEX idx_device_data_vid_timestamp ON device_data(vid, timestamp);
 CREATE INDEX idx_alarms_device_id ON alarms(device_id);
 CREATE INDEX idx_alarms_vid ON alarms(vid);
+CREATE INDEX idx_device_data_history_vid ON device_data_history(vid);
+CREATE INDEX idx_device_data_history_updated_at ON device_data_history(updated_at);
+CREATE INDEX idx_device_data_history_vid_updated_at ON device_data_history(vid, updated_at);
 CREATE INDEX idx_alarms_alarm_type ON alarms(alarm_type);
 CREATE INDEX idx_alarms_alarm_level ON alarms(alarm_level);
 CREATE INDEX idx_alarms_status ON alarms(status);
