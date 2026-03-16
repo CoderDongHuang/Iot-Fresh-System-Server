@@ -2,219 +2,369 @@
 
 ## 已完成功能
 
-### 1. 用户管理功能 (UserController)
+### 1. 设备管理功能 (DeviceController)
 
-#### 1.1 获取用户信息
-- **路径**: `GET /api/user/profile`
-- **功能**: 获取当前登录用户的基本信息
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {
-    "username": "admin",
-    "realName": "管理员",
-    "email": "admin@example.com",
-    "phone": "13800138000",
-    "department": "tech",
-    "position": "系统管理员",
-    "avatar": "https://example.com/avatar.jpg"
-  }
-}
-```
-
-#### 1.2 更新用户信息
-- **路径**: `PUT /api/user/profile`
-- **功能**: 更新当前登录用户的信息
+#### 1.1 新增设备
+- **路径**: `POST /api/device/add`
+- **功能**: 新增设备到系统
 - **请求体**:
 ```json
 {
-  "username": "admin",
-  "realName": "管理员",
-  "email": "admin@example.com",
-  "phone": "13800138000",
-  "department": "tech",
-  "position": "系统管理员"
+  "vid": "device001",
+  "deviceName": "设备名称",
+  "deviceType": "storage",
+  "location": "A区",
+  "description": "设备描述",
+  "manufacturer": "海康威视",
+  "model": "DS-2CD3T45D-I5",
+  "firmwareVersion": "V1.0.0",
+  "contactPhone": "13800138000",
+  "ipAddress": "192.168.1.1",
+  "macAddress": "00:00:00:00:00:00",
+  "status": "online"
 }
 ```
 - **返回格式**:
 ```json
 {
   "code": 200,
-  "msg": "用户信息更新成功"
+  "msg": "设备添加成功",
+  "data": {},
+  "success": true
 }
 ```
 
-#### 1.3 上传头像
-- **路径**: `POST /api/user/avatar`
-- **功能**: 上传用户头像
-- **请求**: multipart/form-data 格式上传文件
+#### 1.2 查询设备详情
+- **路径**: `GET /api/device/{vid}`
+- **功能**: 根据设备VID查询设备详情
 - **返回格式**:
 ```json
 {
   "code": 200,
-  "msg": "头像上传成功",
+  "msg": "获取成功",
   "data": {
-    "avatarUrl": "https://example.com/new-avatar.jpg"
-  }
+    "id": 1,
+    "vid": "device001",
+    "deviceName": "设备名称",
+    "deviceType": "storage",
+    "status": 1,
+    "location": "A区",
+    "description": "设备描述",
+    "manufacturer": "海康威视",
+    "model": "DS-2CD3T45D-I5",
+    "firmwareVersion": "V1.0.0",
+    "ipAddress": "192.168.1.1",
+    "macAddress": "00:00:00:00:00:00",
+    "lastOnlineTime": "2024-01-15T10:30:25",
+    "createTime": "2024-01-01T00:00:00"
+  },
+  "success": true
 }
 ```
 
-#### 1.4 修改密码
-- **路径**: `PUT /api/user/password`
-- **功能**: 修改当前用户密码
-- **请求体**:
-```json
-{
-  "oldPassword": "旧密码",
-  "newPassword": "新密码"
-}
-```
+#### 1.3 获取设备详情（扩展）
+- **路径**: `GET /api/device/detail/{vid}`
+- **功能**: 获取设备的详细信息和实时数据
 - **返回格式**:
 ```json
 {
   "code": 200,
-  "msg": "密码修改成功"
-}
-```
-
-### 2. 系统设置功能 (SystemController)
-
-#### 2.1 系统配置
-- **路径**: `GET /api/system/config`
-- **功能**: 获取系统基本配置信息
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "success",
+  "msg": "获取成功",
   "data": {
-    "systemName": "物联网生鲜品储运系统",
-    "description": "用于监控和管理物联网设备的综合平台",
-    "defaultLanguage": "zh-CN",
-    "timezone": "Asia/Shanghai"
-  }
+    "vid": "device001",
+    "deviceName": "设备名称",
+    "deviceType": "storage",
+    "status": 1,
+    "location": "A区",
+    "description": "设备描述",
+    "manufacturer": "海康威视",
+    "model": "DS-2CD3T45D-I5",
+    "firmwareVersion": "V1.0.0",
+    "ipAddress": "192.168.1.1",
+    "macAddress": "00:00:00:00:00:00",
+    "lastOnlineTime": "2024-01-15T10:30:25",
+    "createTime": "2024-01-01T00:00:00"
+  },
+  "success": true
 }
 ```
 
-#### 2.2 保存系统配置
-- **路径**: `POST /api/system/config`
-- **功能**: 保存系统基本配置信息
-- **请求体**:
-```json
-{
-  "systemName": "物联网生鲜品储运系统",
-  "description": "用于监控和管理物联网设备的综合平台",
-  "defaultLanguage": "zh-CN",
-  "timezone": "Asia/Shanghai"
-}
-```
-
-#### 2.3 安全设置
-- **路径**: `GET /api/system/security`
-- **功能**: 获取安全设置信息
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {
-    "passwordMinLength": 8,
-    "passwordComplexity": ["uppercase", "lowercase", "numbers"],
-    "loginLockEnabled": true,
-    "lockDuration": 30,
-    "sessionTimeout": 30
-  }
-}
-```
-
-#### 2.4 通知设置
-- **路径**: `GET /api/system/notification`
-- **功能**: 获取通知设置信息
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {
-    "emailEnabled": true,
-    "smsEnabled": false,
-    "pushEnabled": true,
-    "deviceAlarmChannels": ["email", "push"],
-    "maintenanceChannels": ["email"],
-    "dataAnomalyChannels": ["email", "sms"]
-  }
-}
-```
-
-#### 2.5 备份设置
-- **路径**: `GET /api/system/backup`
-- **功能**: 获取备份设置信息
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {
-    "autoBackupEnabled": true,
-    "backupFrequency": "daily",
-    "backupTime": "02:00",
-    "retentionCount": 7,
-    "backupPath": "/var/backups/iot-system"
-  }
-}
-```
-
-#### 2.6 执行手动备份
-- **路径**: `POST /api/system/backup/manual`
-- **功能**: 触发手动备份操作
-- **返回格式**:
-```json
-{
-  "code": 200,
-  "msg": "备份任务已启动"
-}
-```
-
-### 3. 数据查询功能 (DeviceDataController)
-
-#### 3.1 历史数据查询
-- **路径**: `GET /api/device/history-data`
+#### 1.4 查询设备历史数据
+- **路径**: `GET /api/device/{vid}/history-data`
 - **功能**: 分页查询设备历史数据
 - **参数**:
   - `pageNum`: 页码，默认为1
   - `pageSize`: 每页大小，默认为20
-  - `vid`: 设备ID，可选
-  - `dataType`: 数据类型，可选
   - `startTime`: 开始时间，格式为 "yyyy-MM-dd HH:mm:ss"
   - `endTime`: 结束时间，格式为 "yyyy-MM-dd HH:mm:ss"
 - **返回格式**:
 ```json
 {
   "code": 200,
-  "msg": "success",
+  "msg": "获取成功",
   "data": {
     "list": [
       {
         "id": 1,
-        "vid": "DEV001",
+        "vid": "device001",
         "tin": 20.5,
         "tout": 22.1,
+        "hin": 60,
+        "hout": 55,
         "lxin": 300,
+        "lxout": 250,
         "brightness": 80,
         "vStatus": 1,
-        "timestamp": "2023-12-01 10:30:45"
+        "timestamp": "2024-01-15 10:30:45"
       }
     ],
     "total": 100,
     "pageNum": 1,
     "pageSize": 20
-  }
+  },
+  "success": true
 }
 ```
 
-### 4. 数据统计功能 (DashboardController)
+#### 1.5 获取设备列表
+- **路径**: `GET /api/device/list`
+- **功能**: 分页获取设备列表
+- **参数**:
+  - `pageNum`: 页码，默认为1
+  - `pageSize`: 每页大小，默认为10
+  - `keyword`: 搜索关键词，可选
+  - `status`: 设备状态，可选（online/offline/error/maintenance）
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取成功",
+  "data": {
+    "list": [
+      {
+        "vid": "device001",
+        "deviceName": "设备名称",
+        "deviceType": "storage",
+        "status": 1,
+        "location": "A区",
+        "manufacturer": "海康威视",
+        "model": "DS-2CD3T45D-I5",
+        "firmwareVersion": "V1.0.0",
+        "lastOnlineTime": "2024-01-15T10:30:25",
+        "description": "设备描述",
+        "contactPhone": "13800138000"
+      }
+    ],
+    "total": 31
+  },
+  "success": true
+}
+```
+
+#### 1.6 更新设备信息
+- **路径**: `PUT /api/device/{vid}`
+- **功能**: 更新设备信息
+- **请求体**: DeviceDto对象
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "设备更新成功",
+  "data": {},
+  "success": true
+}
+```
+
+#### 1.7 删除设备
+- **路径**: `DELETE /api/device/{vid}`
+- **功能**: 删除设备
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "设备删除成功",
+  "data": {},
+  "success": true
+}
+```
+
+### 2. 实时数据功能 (DeviceController)
+
+#### 2.1 获取所有设备实时数据
+- **路径**: `GET /api/device/real-time-data`
+- **功能**: 获取所有设备的实时数据（用于仪表盘设备状态表）
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取实时数据成功",
+  "data": [
+    {
+      "vid": "device001",
+      "deviceName": "设备名称",
+      "deviceType": "storage",
+      "status": 1,
+      "location": "A区",
+      "contactPhone": "13800138000",
+      "description": "设备描述",
+      "lastHeartbeat": "2024-01-15T10:30:25",
+      "tin": 20.5,
+      "tout": 22.1,
+      "hin": 60,
+      "hout": 55,
+      "lxin": 300,
+      "lxout": 250,
+      "brightness": 80,
+      "vStatus": 1,
+      "timestamp": "2024-01-15T10:30:25"
+    }
+  ],
+  "success": true
+}
+```
+
+#### 2.2 获取单个设备实时数据
+- **路径**: `GET /api/device/real-time-data/{vid}`
+- **功能**: 获取单个设备的实时数据（用于设备详情页）
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取实时数据成功",
+  "data": {
+    "vid": "device001",
+    "deviceName": "设备名称",
+    "deviceType": "storage",
+    "status": 1,
+    "location": "A区",
+    "contactPhone": "13800138000",
+    "description": "设备描述",
+    "lastHeartbeat": "2024-01-15T10:30:25",
+    "manufacturer": "海康威视",
+    "model": "DS-2CD3T45D-I5",
+    "firmwareVersion": "V1.0.0",
+    "lastOnlineTime": "2024-01-15T10:30:25",
+    "createTime": "2024-01-01T00:00:00",
+    "tin": 20.5,
+    "tout": 22.1,
+    "hin": 60,
+    "hout": 55,
+    "lxin": 300,
+    "lxout": 250,
+    "brightness": 80,
+    "vStatus": 1,
+    "timestamp": "2024-01-15T10:30:25"
+  },
+  "success": true
+}
+```
+
+### 3. 报警管理功能 (AlarmController)
+
+#### 3.1 获取报警列表
+- **路径**: `GET /api/alarm/list`
+- **功能**: 分页获取报警列表
+- **参数**:
+  - `pageNum`: 页码，默认为1
+  - `pageSize`: 每页大小，默认为10
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取成功",
+  "data": {
+    "list": [
+      {
+        "id": 1,
+        "deviceId": 1,
+        "vid": "device001",
+        "alarmType": "temperature",
+        "alarmLevel": "high",
+        "title": "温度过高",
+        "description": "设备内部温度超过阈值",
+        "status": "pending",
+        "triggerValue": "25.5",
+        "thresholdValue": "25.0",
+        "createdAt": "2024-01-15T10:30:25"
+      }
+    ],
+    "total": 8,
+    "pageNum": 1,
+    "pageSize": 10
+  },
+  "success": true
+}
+```
+
+#### 3.2 处理报警
+- **路径**: `POST /api/alarm/resolve/{alarmId}`
+- **功能**: 处理报警
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "报警已处理",
+  "data": {},
+  "success": true
+}
+```
+
+#### 3.3 关闭报警
+- **路径**: `POST /api/alarm/close/{alarmId}`
+- **功能**: 关闭报警
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "报警已关闭",
+  "data": {},
+  "success": true
+}
+```
+
+#### 3.4 清除全部报警
+- **路径**: `DELETE /api/alarm/clear-all`
+- **功能**: 清除全部报警
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "全部报警已清除",
+  "data": {},
+  "success": true
+}
+```
+
+#### 3.5 获取报警详情
+- **路径**: `GET /api/alarm/detail/{alarmId}`
+- **功能**: 获取报警详情
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取成功",
+  "data": {
+    "id": 1,
+    "deviceId": 1,
+    "vid": "device001",
+    "alarmType": "temperature",
+    "alarmLevel": "high",
+    "title": "温度过高",
+    "description": "设备内部温度超过阈值",
+    "status": "pending",
+    "triggerValue": "25.5",
+    "thresholdValue": "25.0",
+    "resolvedBy": null,
+    "resolvedAt": null,
+    "acknowledgedBy": null,
+    "acknowledgedAt": null,
+    "createdAt": "2024-01-15T10:30:25"
+  },
+  "success": true
+}
+```
+
+### 4. 仪表盘功能 (DashboardController)
 
 #### 4.1 数据统计
 - **路径**: `GET /api/dashboard/data-statistics`
@@ -246,10 +396,54 @@
         "avgHumidity": 60.0,
         "avgLight": 300,
         "recordCount": 50,
-        "timeRange": "2023-12-01 ~ 2023-12-31"
+        "timeRange": "2024-01-01 ~ 2024-01-31"
       }
     ]
+  },
+  "success": true
+}
+```
+
+#### 4.2 顶部统计数据
+- **路径**: `GET /api/dashboard/statistics`
+- **功能**: 获取顶部统计数据（直接返回统计对象，非包装格式）
+- **返回格式**:
+```json
+{
+  "onlineDevices": 25,
+  "totalDevices": 31,
+  "todayData": 156,
+  "dataGrowth": 12,
+  "unresolvedAlarms": 8,
+  "todayAlarms": 3,
+  "systemStatus": "正常",
+  "cpuUsage": 45,
+  "deviceStatusDistribution": {
+    "online": 25,
+    "offline": 4,
+    "fault": 2,
+    "maintenance": 0
   }
+}
+```
+
+#### 4.3 设备状态分布
+- **路径**: `GET /api/dashboard/device-status-distribution`
+- **功能**: 获取设备状态分布数据
+- **返回格式**:
+```json
+{
+  "code": 200,
+  "msg": "获取成功",
+  "data": {
+    "deviceStatusDistribution": {
+      "online": 25,
+      "offline": 4,
+      "fault": 2,
+      "maintenance": 0
+    }
+  },
+  "success": true
 }
 ```
 
@@ -280,17 +474,21 @@
 ```
 src/main/java/com/iot/fresh/
 ├── controller/
-│   ├── UserController.java
-│   ├── SystemController.java
-│   ├── DeviceDataController.java
-│   └── DashboardController.java
+│   ├── DeviceController.java
+│   ├── AlarmController.java
+│   ├── DashboardController.java
+│   └── ...
 ├── service/
-│   ├── UserService.java
+│   ├── DeviceService.java
+│   ├── AlarmService.java
+│   ├── DashboardService.java
 │   └── impl/
-│       └── UserServiceImpl.java
 ├── dto/
-│   ├── UserDto.java
-│   └── ApiResponse.java
+│   ├── DeviceDto.java
+│   ├── ApiResponse.java
+│   └── ...
 └── repository/
-    └── UserRepository.java
+    ├── DeviceRepository.java
+    ├── AlarmRepository.java
+    └── ...
 ```
