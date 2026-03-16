@@ -67,4 +67,8 @@ public interface AlarmRepository extends JpaRepository<Alarm, Long> {
     
     // 按报警内容或设备名模糊查询且级别、状态和时间范围匹配
     Page<Alarm> findByMessageContainingOrDeviceNameContainingAndAlarmLevelAndStatusAndCreatedAtBetween(String message, String deviceName, String alarmLevel, String status, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    // 统计今日新增报警数量
+    @Query("SELECT COUNT(a) FROM Alarm a WHERE DATE(a.createdAt) = CURRENT_DATE")
+    Long countTodayAlarms();
 }

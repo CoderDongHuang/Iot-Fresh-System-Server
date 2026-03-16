@@ -3,6 +3,7 @@ package com.iot.fresh.service;
 import com.iot.fresh.dto.ApiResponse;
 import com.iot.fresh.dto.DeviceDto;
 import java.util.List;
+import java.util.Map;
 
 public interface DeviceService {
     
@@ -55,4 +56,10 @@ public interface DeviceService {
      * @return 操作结果
      */
     ApiResponse<String> updateDeviceHeartbeat(String vid);
+    
+    /**
+     * 获取设备统计信息
+     * @return 设备统计信息
+     */
+    ApiResponse<Map<String, Object>> getDeviceStatistics();
 }

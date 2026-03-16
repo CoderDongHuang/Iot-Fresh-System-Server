@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS alarm_history (
     operator VARCHAR(50), -- 操作人
     remark TEXT, -- 处理备注
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (alarm_id) REFERENCES alarms(id) ON DELETE CASCADE
+    FOREIGN KEY (alarm_id) REFERENCES alarms(device_id) ON DELETE CASCADE
 );
 
 -- 插入报警数据 (根据新规范更新，确保数据合理分布)
@@ -264,7 +264,7 @@ INSERT INTO alarms (device_id, vid, device_name, alarm_type, alarm_level, messag
 (29, 'DEV029', '仓储设备029', 'temperature', 'high', '仓储设备029温度控制失效', 'resolved', DATE_SUB(NOW(), INTERVAL 1 DAY)),
 (30, 'DEV030', '仓储设备030', 'device', 'low', '仓储设备030自动化系统故障', 'resolved', DATE_SUB(NOW(), INTERVAL 1 DAY));
 
--- 插入报警处理记录示例数据
+-- 插入报警处理记录示例数据 (根据新规范，alarm_id对应报警表的vid后面的数字)
 INSERT INTO alarm_history (alarm_id, action, operator, remark, timestamp) VALUES
 (1, 'create', 'system', '系统自动检测到温度异常', DATE_SUB(NOW(), INTERVAL 10 MINUTE)),
 (1, 'acknowledge', 'operator2', '温度异常已确认，正在检查设备运行状态', DATE_SUB(NOW(), INTERVAL 8 MINUTE)),

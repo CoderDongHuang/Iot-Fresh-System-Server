@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -282,8 +283,33 @@ public class DeviceController {
     }
     
     /**
-     * 获取所有设备列表 - 返回前端期望的标准格式
-     * GET http://localhost:8080/api/device/list
+     * 设备列表接口（底部表格）
+     * 
+     * 路径: GET /api/device/list
+     * 
+     * 请求参数:
+     * {
+     *   "pageNum": 1,      // 页码
+     *   "pageSize": 10     // 每页数量
+     * }
+     * 
+     * 响应数据格式:
+     * {
+     *   "code": 200,
+     *   "msg": "获取成功",
+     *   "data": {
+     *     "list": [
+     *       {
+     *         "vid": "device001",
+     *         "deviceName": "存储设备001",
+     *         "deviceType": "storage",
+     *         "status": 1,                    // 1=在线, 0=离线, 2=故障
+     *         "location": "A区仓库"
+     *       }
+     *     ],
+     *     "total": 31
+     *   }
+     * }
      */
     @GetMapping("/list")
     public ApiResponse<Map<String, Object>> getAllDevices(
@@ -328,38 +354,31 @@ public class DeviceController {
             
             log.info("设备管理服务调用结果 - 成功: {}, 数据: {}", response.isSuccess(), response.getData() != null);
             
-            // 转换为前端期望的格式 - 返回所有可能用到的字段
+            // 转换为前端期望的格式 - 只返回必要的字段
             if (response.isSuccess() && response.getData() != null) {
                 com.iot.fresh.dto.PaginatedResponse<DeviceDto> paginatedData = response.getData();
+                
                 log.info("分页数据 - 总数: {}, 当前页数量: {}", paginatedData.getTotal(), paginatedData.getList().size());
                 
-                // 转换为前端期望的格式 - 返回所有字段，前端按需选择
+                // 转换为前端期望的格式 - 返回所有需要的字段
                 List<Map<String, Object>> formattedList = new java.util.ArrayList<>();
                 for (DeviceDto device : paginatedData.getList()) {
                     Map<String, Object> deviceMap = new java.util.HashMap<>();
                     
-                    // 必需字段
+                    // 必需字段（按照前端要求格式）
                     deviceMap.put("vid", device.getVid());
                     deviceMap.put("deviceName", device.getDeviceName());
-                    deviceMap.put("status", device.getStatus());
-                    
-                    // 时间字段（确保包含lastHeartbeat）
-                    if (device.getLastHeartbeat() != null) {
-                        deviceMap.put("lastHeartbeat", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                        deviceMap.put("lastOnlineTime", device.getLastHeartbeat().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                    } else {
-                        deviceMap.put("lastHeartbeat", null);
-                        deviceMap.put("lastOnlineTime", null);
-                    }
-                    
-                    // 可选字段
-                    deviceMap.put("contactPhone", device.getContactPhone());
-                    deviceMap.put("description", device.getDescription());
-                    deviceMap.put("location", device.getLocation());
                     deviceMap.put("deviceType", device.getDeviceType());
+                    deviceMap.put("status", device.getStatus());
+                    deviceMap.put("location", device.getLocation());
+                    
+                    // 添加前端需要的其他字段
                     deviceMap.put("manufacturer", device.getManufacturer());
                     deviceMap.put("model", device.getModel());
                     deviceMap.put("firmwareVersion", device.getFirmwareVersion());
+                    deviceMap.put("lastOnlineTime", device.getLastOnlineTime());
+                    deviceMap.put("description", device.getDescription());
+                    deviceMap.put("contactPhone", device.getContactPhone());
                     
                     formattedList.add(deviceMap);
                 }
@@ -367,11 +386,9 @@ public class DeviceController {
                 Map<String, Object> frontendData = new java.util.HashMap<>();
                 frontendData.put("list", formattedList);
                 frontendData.put("total", paginatedData.getTotal());
-                frontendData.put("pageNum", paginatedData.getPageNum());
-                frontendData.put("pageSize", paginatedData.getPageSize());
                 
                 log.info("获取设备列表请求处理完成 - 设备数量: {}", formattedList.size());
-                return ApiResponse.success("操作成功", frontendData);
+                return ApiResponse.success("获取成功", frontendData);
             } else {
                 return ApiResponse.error(response.getCode(), response.getMessage());
             }
@@ -480,6 +497,11 @@ public class DeviceController {
                 deviceDataMap.put("lastOnlineTime", device.getLastOnlineTime());
                 deviceDataMap.put("createTime", device.getCreateTime());
                 
+                // 添加前端需要的其他字段
+                deviceDataMap.put("contactPhone", device.getContactPhone());
+                deviceDataMap.put("description", device.getDescription());
+                deviceDataMap.put("lastHeartbeat", device.getLastHeartbeat()); // 使用真正的lastHeartbeat字段
+                
                 // 直接从device_data表获取该设备的最新传感器数据
                 com.iot.fresh.entity.DeviceData latestDeviceData = dataService.getLatestDeviceData(device.getVid());
                 if (latestDeviceData != null) {
@@ -515,6 +537,31 @@ public class DeviceController {
      * 获取单个设备实时数据
      * GET http://localhost:8080/api/device/real-time-data/{vid}
      * 直接从device_data表获取最新的设备传感器数据
+     * 
+     * 响应格式:
+     * {
+     *   "code": 200,
+     *   "msg": "获取成功",
+     *   "data": {
+     *     "id": 1,
+     *     "vid": "device001",
+     *     "deviceName": "设备名称",
+     *     "deviceType": "设备类型",
+     *     "location": "位置",
+     *     "status": 1,
+     *     "lastOnlineTime": "...",
+     *     "createTime": "...",
+     *     "tin": 25.5,
+     *     "tout": 23.1,
+     *     "hin": 50,
+     *     "hout": 45,
+     *     "lxin": 500,
+     *     "lxout": 300,
+     *     "brightness": 80,
+     *     "vStatus": 1,
+     *     "timestamp": "2024-01-15 10:30:25"
+     *   }
+     * }
      */
     @GetMapping("/real-time-data/{vid}")
     public ApiResponse<Map<String, Object>> getRealTimeData(@PathVariable String vid) {
@@ -531,15 +578,25 @@ public class DeviceController {
             DeviceDto device = deviceResponse.getData();
             Map<String, Object> deviceDataMap = new java.util.HashMap<>();
             
-            // 基本设备信息
+            // 基本设备信息 - 使用前端期望的字段名
             deviceDataMap.put("id", device.getId());
             deviceDataMap.put("vid", device.getVid());
             deviceDataMap.put("deviceName", device.getDeviceName());
             deviceDataMap.put("deviceType", device.getDeviceType());
             deviceDataMap.put("location", device.getLocation());
             deviceDataMap.put("status", device.getStatus());
-            deviceDataMap.put("lastOnlineTime", device.getLastOnlineTime());
+            deviceDataMap.put("lastOnlineTime", device.getLastOnlineTime()); // 前端期望camelCase
             deviceDataMap.put("createTime", device.getCreateTime());
+            
+            // 设备管理界面需要的字段
+            deviceDataMap.put("manufacturer", device.getManufacturer());
+            deviceDataMap.put("model", device.getModel());
+            deviceDataMap.put("firmwareVersion", device.getFirmwareVersion()); // 前端期望camelCase
+            
+            // 仪表盘设备实时状态需要的字段
+            deviceDataMap.put("contactPhone", device.getContactPhone()); // 前端期望camelCase
+            deviceDataMap.put("lastHeartbeat", device.getLastHeartbeat()); // 使用真正的lastHeartbeat字段
+            deviceDataMap.put("description", device.getDescription());
             
             // 直接从device_data表获取该设备的最新传感器数据
             com.iot.fresh.entity.DeviceData latestDeviceData = dataService.getLatestDeviceData(vid);

@@ -99,6 +99,13 @@ public interface DataService {
     Map<String, Object> getDeviceDataStatistics(String vid, LocalDateTime startTime, LocalDateTime endTime);
     
     /**
+     * 获取数据统计信息（用于仪表盘）
+     * 
+     * @return ApiResponse<Map<String, Object>> 数据统计响应对象
+     */
+    ApiResponse<Map<String, Object>> getDataStatistics();
+    
+    /**
      * 保存仅包含状态信息的设备数据记录
      * 
      * @param vid 设备唯一标识符

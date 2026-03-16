@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class DataServiceImpl implements DataService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DataServiceImpl.class);
+    
     @Autowired
     private DeviceDataRepository deviceDataRepository;
 
@@ -1303,6 +1306,49 @@ public class DataServiceImpl implements DataService {
         } catch (Exception e) {
             System.err.println("ERROR updating device data status: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * 获取数据统计信息（用于仪表盘）
+     */
+    @Override
+    public ApiResponse<Map<String, Object>> getDataStatistics() {
+        try {
+            log.info("开始获取数据统计信息");
+            
+            LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime todayEnd = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            LocalDateTime yesterdayStart = todayStart.minusDays(1);
+            LocalDateTime yesterdayEnd = todayEnd.minusDays(1);
+            
+            // 获取今日数据量
+            List<DeviceData> todayDataList = deviceDataRepository.findByTimeRangeWithNoPagination(todayStart, todayEnd);
+            long todayData = todayDataList.size();
+            
+            // 获取昨日数据量
+            List<DeviceData> yesterdayDataList = deviceDataRepository.findByTimeRangeWithNoPagination(yesterdayStart, yesterdayEnd);
+            long yesterdayData = yesterdayDataList.size();
+            
+            // 计算数据增长率
+            double dataGrowth = 0.0;
+            if (yesterdayData > 0) {
+                dataGrowth = ((double) (todayData - yesterdayData) / yesterdayData) * 100;
+            } else if (todayData > 0) {
+                dataGrowth = 100.0; // 如果昨天没有数据但今天有，增长率为100%
+            }
+            
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("todayData", todayData);
+            statistics.put("dataGrowth", Math.round(dataGrowth)); // 四舍五入为整数
+            
+            log.info("数据统计信息获取成功 - 今日数据量: {}, 数据增长率: {}%", todayData, Math.round(dataGrowth));
+            
+            return ApiResponse.success("获取数据统计信息成功", statistics);
+            
+        } catch (Exception e) {
+            log.error("获取数据统计信息失败: {}", e.getMessage(), e);
+            return ApiResponse.error("获取数据统计信息失败: " + e.getMessage());
         }
     }
 }

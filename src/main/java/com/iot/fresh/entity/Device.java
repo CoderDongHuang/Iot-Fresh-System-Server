@@ -25,7 +25,7 @@ public class Device {
     private String deviceType;
     
     @Column(name = "status", nullable = false)
-    private Integer status = 1; // 1-在线，0-离线
+    private Integer status = 1; // 1-在线，0-离线，2-故障，3-维护
     
     @Column(name = "location", length = 200)
     private String location;

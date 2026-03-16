@@ -6,6 +6,7 @@ import com.iot.fresh.service.AlarmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -53,10 +54,52 @@ public class AlarmController {
         return alarmService.getAlarmDetail(alarmId);
     }
 
-    // 6. 获取报警统计接口
+    /**
+     * 报警类型统计图接口
+     * 
+     * 路径: GET /api/alarm/statistics
+     * 
+     * 响应格式:
+     * {
+     *   "code": 200,
+     *   "msg": "获取成功",
+     *   "data": {
+     *     "high": 3,
+     *     "medium": 8,
+     *     "low": 5
+     *   }
+     * }
+     */
     @GetMapping("/statistics")
     public ApiResponse<Map<String, Object>> getAlarmStatistics() {
-        return alarmService.getAlarmStatistics();
+        try {
+            // 获取完整的报警统计数据
+            ApiResponse<Map<String, Object>> fullStatsResponse = alarmService.getAlarmStatistics();
+            
+            if (!fullStatsResponse.isSuccess()) {
+                return ApiResponse.error("获取报警统计数据失败: " + fullStatsResponse.getMessage());
+            }
+            
+            Map<String, Object> fullStats = fullStatsResponse.getData();
+            
+            // 按照要求格式提取按级别统计的数据
+            Map<String, Object> levelStats = new HashMap<>();
+            
+            // 紧急报警数量 (对应后端的urgent字段)
+            levelStats.put("high", fullStats.get("urgent") != null ? fullStats.get("urgent") : 0);
+            
+            // 重要报警数量 (对应后端的重要字段)
+            levelStats.put("medium", fullStats.get("important") != null ? fullStats.get("important") : 0);
+            
+            // 一般报警数量 (对应后端的一般字段)
+            levelStats.put("low", fullStats.get("normal") != null ? fullStats.get("normal") : 0);
+            
+            return ApiResponse.success("获取成功", levelStats);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResponse.error("获取报警统计数据失败: " + e.getMessage());
+        }
     }
 
     // 7. 获取报警处理记录接口

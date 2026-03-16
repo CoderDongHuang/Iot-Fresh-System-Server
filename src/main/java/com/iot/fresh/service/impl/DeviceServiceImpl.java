@@ -11,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -254,6 +256,42 @@ public class DeviceServiceImpl implements DeviceService {
         } catch (Exception e) {
             log.error("更新设备心跳时间失败 - VID: {}, 错误: {}", vid, e.getMessage(), e);
             return ApiResponse.error("更新设备心跳时间失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取设备统计信息
+     */
+    @Override
+    public ApiResponse<Map<String, Object>> getDeviceStatistics() {
+        try {
+            log.info("开始获取设备统计信息");
+            
+            // 获取所有设备
+            List<Device> devices = deviceRepository.findAll();
+            
+            // 统计设备状态
+            long totalDevices = devices.size();
+            long onlineDevices = devices.stream().filter(d -> d.getStatus() != null && d.getStatus() == 1).count();
+            long offlineDevices = devices.stream().filter(d -> d.getStatus() != null && d.getStatus() == 0).count();
+            long faultDevices = devices.stream().filter(d -> d.getStatus() != null && d.getStatus() == 2).count();
+            long maintenanceDevices = devices.stream().filter(d -> d.getStatus() != null && d.getStatus() == 3).count();
+            
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("total", totalDevices);
+            statistics.put("online", onlineDevices);
+            statistics.put("offline", offlineDevices);
+            statistics.put("fault", faultDevices);
+            statistics.put("maintenance", maintenanceDevices);
+            
+            log.info("设备统计信息获取成功 - 总数: {}, 在线: {}, 离线: {}, 故障: {}, 维护: {}", 
+                    totalDevices, onlineDevices, offlineDevices, faultDevices, maintenanceDevices);
+            
+            return ApiResponse.success("获取设备统计信息成功", statistics);
+            
+        } catch (Exception e) {
+            log.error("获取设备统计信息失败: {}", e.getMessage(), e);
+            return ApiResponse.error("获取设备统计信息失败: " + e.getMessage());
         }
     }
     

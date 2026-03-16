@@ -270,13 +270,9 @@ public class AlarmServiceImpl implements AlarmService {
         alarmMap.put("alarmType", alarm.getAlarmType());
         alarmMap.put("alarmContent", alarm.getMessage()); // 使用message字段作为报警内容
         
-        // 映射状态值以匹配API规范
+        // 映射状态值以匹配前端期望的英文状态值
         String status = alarm.getStatus();
-        if ("active".equals(status)) {
-            status = "待处理";
-        } else if ("resolved".equals(status)) {
-            status = "已处理";
-        }
+        // 前端期望：'active' 或 'resolved'，保持数据库原始状态值
         alarmMap.put("status", status);
         alarmMap.put("timestamp", alarm.getCreatedAt() != null ? formatDateTime(alarm.getCreatedAt()) : null);
         alarmMap.put("resolvedTime", alarm.getResolvedAt() != null ? formatDateTime(alarm.getResolvedAt()) : null);
@@ -416,32 +412,22 @@ public class AlarmServiceImpl implements AlarmService {
             alarm.setCreatedAt(LocalDateTime.now());
         }
         
-        // 设置device_id：从VID中提取数字部分
+        // 设置device_id：通过VID查找设备表中的对应设备
         try {
             String vid = alarmData.getVid();
-            // 支持多种VID格式：DV0033, DEV0033, 0033等
-            if (vid.startsWith("DV") || vid.startsWith("DEV")) {
-                // 去掉前缀，提取数字部分
-                String numberPart = vid.replaceAll("\\D+", ""); // 移除非数字字符
-                if (!numberPart.isEmpty()) {
-                    Long deviceId = Long.parseLong(numberPart);
-                    alarm.setDeviceId(deviceId);
-                    System.out.println("从VID " + vid + " 提取device_id: " + deviceId);
-                } else {
-                    System.err.println("VID " + vid + " 中不包含数字部分，device_id设置为null");
-                    alarm.setDeviceId(null);
-                }
-            } else if (vid.matches("\\d+")) {
-                // 如果VID本身就是纯数字
-                Long deviceId = Long.parseLong(vid);
-                alarm.setDeviceId(deviceId);
-                System.out.println("VID为纯数字，设置device_id: " + deviceId);
+            // 通过VID查找设备
+            Optional<Device> deviceOpt = deviceRepository.findByVid(vid);
+            if (deviceOpt.isPresent()) {
+                Device device = deviceOpt.get();
+                alarm.setDeviceId(device.getId());
+                System.out.println("找到设备 - VID: " + vid + ", device_id: " + device.getId());
             } else {
-                System.err.println("无法从VID " + vid + " 中提取device_id，设置为null");
+                // 如果设备不存在，设置为null（允许外键为null）
+                System.err.println("设备不存在 - VID: " + vid + ", device_id设置为null");
                 alarm.setDeviceId(null);
             }
         } catch (Exception e) {
-            System.err.println("从VID中提取device_id失败: " + e.getMessage());
+            System.err.println("查找设备失败: " + e.getMessage());
             alarm.setDeviceId(null);
         }
         

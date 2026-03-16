@@ -141,55 +141,146 @@ public class DashboardController {
     }
     
     /**
-     * 仪表盘统计信息接口
+     * 顶部统计数据接口
      * 
      * 路径: GET /api/dashboard/statistics
      * 
-     * 返回格式:
+     * 前端期望直接返回统计对象，而不是包装的 {code, msg, data} 格式：
      * {
-     *   "code": 200,
-     *   "msg": "success",
-     *   "data": {
-     *     "onlineDevices": 15,
-     *     "totalDevices": 50,
-     *     "todayData": 1200,
-     *     "dataGrowth": 12.5,
-     *     "unresolvedAlarms": 3,
-     *     "todayAlarms": 8,
-     *     "alarmCount": 25,
-     *     "alarmTrend": 2,
-     *     "systemStatus": "normal",
-     *     "cpuUsage": 45.2,
-     *     "deviceStatusDistribution": {
-     *       "online": 15,
-     *       "offline": 30,
-     *       "fault": 3,
-     *       "maintenance": 2
-     *     },
-     *     "recentAlarms": [
-     *       {
-     *         "id": 1,
-     *         "deviceName": "设备A",
-     *         "alarmType": "温度过高",
-     *         "alarmLevel": "high",
-     *         "timestamp": "2023-12-01 10:30:45",
-     *         "status": "pending"
-     *       }
-     *     ]
+     *   "onlineDevices": 25,           // 设备表获取，1为在线 在线设备数量
+     *   "totalDevices": 31,            // 同上 总设备数量
+     *   "todayData": 156,              // 从数据表获取 今日数据量
+     *   "dataGrowth": 12,              // 同上 数据增长率(%)
+     *   "unresolvedAlarms": 8,         // 从报警表获取 未处理报警数量
+     *   "todayAlarms": 3,              // 同上 今日新增报警
+     *   "systemStatus": "正常",         // 系统状态
+     *   "cpuUsage": 45,                // CPU使用率(%)
+     *   "deviceStatusDistribution": {  // 设备状态分布
+     *     "online": 25,                // 在线设备数量
+     *     "offline": 4,                // 离线设备数量   
+     *     "fault": 2                   // 故障设备数量
      *   }
      * }
      * 
-     * @return ApiResponse<Map<String, Object>> 包含仪表盘统计信息的响应对象
+     * @return Map<String, Object> 直接返回统计对象
      * @author donghuang
      * @since 2026
      */
     @GetMapping("/statistics")
-    public ApiResponse<Map<String, Object>> getStatistics() {
+    public Map<String, Object> getStatistics() {
         try {
-            return dashboardService.getStatistics();
+            // 获取设备统计信息
+            ApiResponse<Map<String, Object>> deviceStatsResponse = deviceService.getDeviceStatistics();
+            Map<String, Object> deviceStats = deviceStatsResponse.isSuccess() ? deviceStatsResponse.getData() : new HashMap<>();
+            
+            // 获取数据统计信息
+            ApiResponse<Map<String, Object>> dataStatsResponse = dataService.getDataStatistics();
+            Map<String, Object> dataStats = dataStatsResponse.isSuccess() ? dataStatsResponse.getData() : new HashMap<>();
+            
+            // 获取报警统计信息
+            ApiResponse<Map<String, Object>> alarmStatsResponse = dashboardService.getAlarmStatistics();
+            Map<String, Object> alarmStats = alarmStatsResponse.isSuccess() ? alarmStatsResponse.getData() : new HashMap<>();
+            
+            // 构建统计对象
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // 设备统计
+            statistics.put("onlineDevices", deviceStats.getOrDefault("online", 0));
+            statistics.put("totalDevices", deviceStats.getOrDefault("total", 0));
+            
+            // 数据统计
+            statistics.put("todayData", dataStats.getOrDefault("todayData", 0));
+            statistics.put("dataGrowth", dataStats.getOrDefault("dataGrowth", 0));
+            
+            // 报警统计
+            statistics.put("unresolvedAlarms", alarmStats.getOrDefault("unresolved", 0));
+            statistics.put("todayAlarms", alarmStats.getOrDefault("todayAlarms", 0));
+            
+            // 系统状态（模拟数据）
+            statistics.put("systemStatus", "正常");
+            statistics.put("cpuUsage", 45);
+            
+            // 设备状态分布
+            Map<String, Object> statusDistribution = new HashMap<>();
+            statusDistribution.put("online", deviceStats.getOrDefault("online", 0));
+            statusDistribution.put("offline", deviceStats.getOrDefault("offline", 0));
+            statusDistribution.put("fault", deviceStats.getOrDefault("fault", 0));
+            statusDistribution.put("maintenance", deviceStats.getOrDefault("maintenance", 0));
+            statistics.put("deviceStatusDistribution", statusDistribution);
+            
+            return statistics;
+            
         } catch (Exception e) {
             e.printStackTrace();
-            return ApiResponse.error("获取仪表盘统计信息失败: " + e.getMessage());
+            // 返回空统计对象而不是错误响应
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("onlineDevices", 0);
+            errorStats.put("totalDevices", 0);
+            errorStats.put("todayData", 0);
+            errorStats.put("dataGrowth", 0);
+            errorStats.put("unresolvedAlarms", 0);
+            errorStats.put("todayAlarms", 0);
+            errorStats.put("systemStatus", "异常");
+            errorStats.put("cpuUsage", 0);
+            
+            Map<String, Object> errorDistribution = new HashMap<>();
+            errorDistribution.put("online", 0);
+            errorDistribution.put("offline", 0);
+            errorDistribution.put("fault", 0);
+            errorDistribution.put("maintenance", 0);
+            errorStats.put("deviceStatusDistribution", errorDistribution);
+            
+            return errorStats;
+        }
+    }
+
+    /**
+     * 设备状态分布图接口
+     * 
+     * 路径: GET /api/dashboard/statistics
+     * 
+     * 响应格式:
+     * {
+     *   "code": 200,
+     *   "msg": "获取成功",
+     *   "data": {
+     *     "deviceStatusDistribution": {
+     *       "online": 25,
+     *       "offline": 4, 
+     *       "fault": 2,
+     *       "maintenance": 1
+     *     }
+     *   }
+     * }
+     */
+    @GetMapping("/device-status-distribution")
+    public ApiResponse<Map<String, Object>> getDeviceStatusDistribution() {
+        try {
+            Map<String, Object> responseData = new HashMap<>();
+            
+            // 获取设备状态分布数据
+            ApiResponse<Map<String, Object>> distributionResponse = dashboardService.getDeviceStatusDistribution();
+            
+            if (!distributionResponse.isSuccess()) {
+                return ApiResponse.error("获取设备状态分布失败: " + distributionResponse.getMessage());
+            }
+            
+            Map<String, Object> distributionData = distributionResponse.getData();
+            
+            // 按照要求格式构建响应
+            Map<String, Object> statusDistribution = new HashMap<>();
+            statusDistribution.put("online", distributionData.get("online"));
+            statusDistribution.put("offline", distributionData.get("offline"));
+            statusDistribution.put("fault", distributionData.get("fault"));
+            statusDistribution.put("maintenance", distributionData.get("maintenance"));
+            
+            responseData.put("deviceStatusDistribution", statusDistribution);
+            
+            return ApiResponse.success("获取成功", responseData);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ApiResponse.error("获取设备状态分布失败: " + e.getMessage());
         }
     }
 }
